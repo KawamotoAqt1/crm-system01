@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "@types/jsonwebtoken": "^9.0.10",
+    "dotenv": "^17.2.0",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^4.0.5"
+  }
+}

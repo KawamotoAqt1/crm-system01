@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC版レイアウトプレビュー - 営業支援ツール統合システム</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* カスタムスタイル */
+        .sidebar-active {
+            background-color: rgb(17 24 39); /* gray-900 */
+        }
+        
+        body {
+            font-family: 'Hiragino Sans', 'Meiryo', sans-serif;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- メインコンテナ：PC用レイアウト（1024px以上） -->
+    <div class="h-screen w-screen flex flex-col bg-gray-50">
+        
+        <!-- ヘッダー（高さ64px） -->
+        <header class="h-16 bg-white border-b border-gray-200 flex-shrink-0 z-30 relative">
+            <div class="h-full px-6 flex justify-between items-center">
+                <!-- 左側：ロゴ・タイトル -->
+                <div class="flex items-center space-x-3">
+                    <div class="flex items-center">
+                        <h1 class="text-lg font-bold text-gray-900">
+                            営業支援ツール統合システム
+                        </h1>
+                    </div>
+                </div>
+
+                <!-- 右側：ユーザー情報・ログアウト -->
+                <div class="flex items-center space-x-3">
+                    <!-- ユーザー情報 -->
+                    <span class="text-sm font-medium text-gray-900">
+                        田中 太郎
+                    </span>
+                    
+                    <!-- ロールバッジ -->
+                    <span class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                        管理者
+                    </span>
+
+                    <!-- ログアウトボタン -->
+                    <button class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 transition-colors">
+                        ログアウト
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- メインエリア -->
+        <div class="flex-1 flex min-h-0 relative">
+            
+            <!-- サイドバー（幅256px、固定表示） -->
+            <aside class="w-64 flex-shrink-0 bg-gray-800">
+                <div class="h-full">
+                    <!-- ナビゲーション -->
+                    <nav class="flex-1 p-6">
+                        <ul class="flex flex-col space-y-2">
+                            <!-- ダッシュボード -->
+                            <li class="w-full">
+                                <button class="group flex items-center px-4 py-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-200 text-gray-300 hover:bg-gray-700 hover:text-white">
+                                    <span class="mr-3 flex-shrink-0 text-gray-400">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"></path>
+                                        </svg>
+                                    </span>
+                                    ダッシュボード
+                                </button>
+                            </li>
+
+                            <!-- 社員管理（アクティブ） -->
+                            <li class="w-full">
+                                <button class="sidebar-active group flex items-center px-4 py-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-200 text-white shadow-md">
+                                    <span class="mr-3 flex-shrink-0 text-white">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z"></path>
+                                        </svg>
+                                    </span>
+                                    社員管理
+                                </button>
+                            </li>
+
+                            <!-- 部署管理 -->
+                            <li class="w-full">
+                                <button class="group flex items-center px-4 py-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-200 text-gray-300 hover:bg-gray-700 hover:text-white">
+                                    <span class="mr-3 flex-shrink-0 text-gray-400">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                                        </svg>
+                                    </span>
+                                    部署管理
+                                </button>
+                            </li>
+
+                            <!-- 役職管理 -->
+                            <li class="w-full">
+                                <button class="group flex items-center px-4 py-3 text-sm font-medium rounded-lg w-full text-left transition-all duration-200 text-gray-300 hover:bg-gray-700 hover:text-white">
+                                    <span class="mr-3 flex-shrink-0 text-gray-400">
+                                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path>
+                                        </svg>
+                                    </span>
+                                    役職管理
+                                </button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            </aside>
+
+            <!-- メインコンテンツエリア -->
+            <main class="flex-1 overflow-auto">
+                <div class="h-full">
+                    <div class="p-8">
+                        <!-- サンプルコンテンツ：社員一覧画面のイメージ -->
+                        <div class="bg-white rounded-lg shadow-sm border border-gray-200">
+                            <!-- ページヘッダー -->
+                            <div class="px-6 py-4 border-b border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div>
+                                        <h2 class="text-xl font-semibold text-gray-900">社員管理</h2>
+                                        <p class="text-sm text-gray-600 mt-1">社員情報の閲覧・編集・管理を行います</p>
+                                    </div>
+                                    <button class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors">
+                                        + 新規登録
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- 検索・フィルタエリア -->
+                            <div class="px-6 py-4 bg-gray-50 border-b border-gray-200">
+                                <div class="flex items-center space-x-4">
+                                    <!-- 検索ボックス -->
+                                    <div class="flex-1 max-w-md">
+                                        <div class="relative">
+                                            <input type="text" 
+                                                   placeholder="社員名で検索..." 
+                                                   class="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                            <div class="absolute inset-y-0 left-0 pl-3 flex items-center">
+                                                <svg class="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                                                </svg>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <!-- 部署フィルタ -->
+                                    <select class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option>すべての部署</option>
+                                        <option>営業部</option>
+                                        <option>開発部</option>
+                                        <option>総務部</option>
+                                    </select>
+
+                                    <!-- 役職フィルタ -->
+                                    <select class="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                                        <option>すべての役職</option>
+                                        <option>代表取締役</option>
+                                        <option>部長</option>
+                                        <option>課長</option>
+                                        <option>主任</option>
+                                        <option>一般</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- テーブルエリア -->
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">社員</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部署</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">役職</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">雇用形態</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">入社日</th>
+                                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        <!-- サンプル行1 -->
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0 h-10 w-10">
+                                                        <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                                            <span class="text-sm font-medium text-gray-700">田</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ml-4">
+                                                        <div class="text-sm font-medium text-gray-900">田中 太郎</div>
+                                                        <div class="text-sm text-gray-500">tanaka@company.com</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">総務部</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">代表取締役</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">正社員</span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2020-04-01</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button class="text-blue-600 hover:text-blue-900 mr-3">詳細</button>
+                                                <button class="text-green-600 hover:text-green-900 mr-3">編集</button>
+                                                <button class="text-red-600 hover:text-red-900">削除</button>
+                                            </td>
+                                        </tr>
+
+                                        <!-- サンプル行2 -->
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0 h-10 w-10">
+                                                        <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                                            <span class="text-sm font-medium text-gray-700">佐</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ml-4">
+                                                        <div class="text-sm font-medium text-gray-900">佐藤 花子</div>
+                                                        <div class="text-sm text-gray-500">sato@company.com</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">営業部</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">部長</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">正社員</span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2021-04-01</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button class="text-blue-600 hover:text-blue-900 mr-3">詳細</button>
+                                                <button class="text-green-600 hover:text-green-900 mr-3">編集</button>
+                                                <button class="text-red-600 hover:text-red-900">削除</button>
+                                            </td>
+                                        </tr>
+
+                                        <!-- サンプル行3 -->
+                                        <tr class="hover:bg-gray-50">
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <div class="flex items-center">
+                                                    <div class="flex-shrink-0 h-10 w-10">
+                                                        <div class="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center">
+                                                            <span class="text-sm font-medium text-gray-700">鈴</span>
+                                                        </div>
+                                                    </div>
+                                                    <div class="ml-4">
+                                                        <div class="text-sm font-medium text-gray-900">鈴木 次郎</div>
+                                                        <div class="text-sm text-gray-500">suzuki@company.com</div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">開発部</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">課長</td>
+                                            <td class="px-6 py-4 whitespace-nowrap">
+                                                <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">契約社員</span>
+                                            </td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">2022-10-15</td>
+                                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                                <button class="text-blue-600 hover:text-blue-900 mr-3">詳細</button>
+                                                <button class="text-green-600 hover:text-green-900 mr-3">編集</button>
+                                                <button class="text-red-600 hover:text-red-900">削除</button>
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            <!-- ページネーション -->
+                            <div class="px-6 py-4 border-t border-gray-200">
+                                <div class="flex items-center justify-between">
+                                    <div class="text-sm text-gray-700">
+                                        <span class="font-medium">1</span> から <span class="font-medium">3</span> まで表示（全 <span class="font-medium">25</span> 件中）
+                                    </div>
+                                    <div class="flex space-x-2">
+                                        <button class="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50" disabled>前へ</button>
+                                        <button class="px-3 py-1 text-sm border border-blue-600 bg-blue-600 text-white rounded-md">1</button>
+                                        <button class="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">2</button>
+                                        <button class="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">3</button>
+                                        <button class="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">次へ</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+
+        <!-- フッター（高さ48px） -->
+        <footer class="h-12 bg-white border-t border-gray-200 flex-shrink-0 flex items-center justify-center px-4">
+            <p class="text-sm text-gray-500 text-center">
+                © 2025 営業支援ツール統合システム
+            </p>
+        </footer>
+    </div>
+
+    <!-- インタラクティブ要素のスクリプト -->
+    <script>
+        // ホバーエフェクトの実装
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('mouseenter', function() {
+                if (!this.disabled) {
+                    this.style.transform = 'translateY(-1px)';
+                }
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0)';
+            });
+        });
+
+        // テーブル行のホバーエフェクト
+        document.querySelectorAll('tbody tr').forEach(row => {
+            row.addEventListener('mouseenter', function() {
+                this.style.backgroundColor = '#f9fafb';
+            });
+            
+            row.addEventListener('mouseleave', function() {
+                this.style.backgroundColor = '';
+            });
+        });
+    </script>
+</body>
+</html>

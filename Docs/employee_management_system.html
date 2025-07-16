@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>営業支援ツール統合システム</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        /* Header */
+        .header {
+            background-color: #fff;
+            border-bottom: 1px solid #e0e0e0;
+            padding: 12px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .user-info {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .admin-badge {
+            background-color: #ff4444;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .logout-btn {
+            color: #666;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        /* Main Layout */
+        .main-container {
+            display: flex;
+            height: calc(100vh - 60px);
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 200px;
+            background-color: #2c3e50;
+            color: white;
+            padding: 0;
+        }
+
+        .sidebar-item {
+            display: flex;
+            align-items: center;
+            padding: 16px 20px;
+            color: #bdc3c7;
+            text-decoration: none;
+            border-bottom: 1px solid #34495e;
+            transition: all 0.2s;
+        }
+
+        .sidebar-item:hover {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .sidebar-item.active {
+            background-color: #3498db;
+            color: white;
+        }
+
+        .sidebar-item i {
+            margin-right: 12px;
+            font-size: 16px;
+        }
+
+        /* Content Area */
+        .content {
+            flex: 1;
+            padding: 24px;
+        }
+
+        .content-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+
+        .content-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .content-subtitle {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .add-btn {
+            background-color: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .add-btn:hover {
+            background-color: #2980b9;
+        }
+
+        /* Search and Filters */
+        .search-filters {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .search-input {
+            flex: 1;
+            max-width: 400px;
+            padding: 10px 40px 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background-image: url('data:image/svg+xml;charset=utf-8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>');
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 16px;
+        }
+
+        .filter-select {
+            padding: 10px 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background-color: white;
+            cursor: pointer;
+        }
+
+        /* Table */
+        .table-container {
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .table th {
+            background-color: #f8f9fa;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            color: #555;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .table td {
+            padding: 16px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+        }
+
+        .table tr:hover {
+            background-color: #f8f9fa;
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #bdc3c7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+            margin-right: 12px;
+        }
+
+        .employee-info {
+            display: flex;
+            align-items: center;
+        }
+
+        .employee-details {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .employee-name {
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .employee-email {
+            color: #7f8c8d;
+            font-size: 13px;
+        }
+
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-pending {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .action-links {
+            display: flex;
+            gap: 12px;
+        }
+
+        .action-link {
+            color: #3498db;
+            text-decoration: none;
+            font-size: 13px;
+        }
+
+        .action-link:hover {
+            text-decoration: underline;
+        }
+
+        .action-link.edit {
+            color: #f39c12;
+        }
+
+        .action-link.delete {
+            color: #e74c3c;
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background-color: white;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .pagination-info {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 8px;
+        }
+
+        .page-btn {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            background-color: white;
+            color: #666;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .page-btn:hover {
+            background-color: #f8f9fa;
+        }
+
+        .page-btn.active {
+            background-color: #3498db;
+            color: white;
+            border-color: #3498db;
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="header">
+        <div class="header-left">営業支援ツール統合システム</div>
+        <div class="header-right">
+            <span class="user-info">田中 太郎</span>
+            <span class="admin-badge">管理者</span>
+            <a href="#" class="logout-btn">ログアウト</a>
+        </div>
+    </div>
+
+    <div class="main-container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <a href="#" class="sidebar-item">
+                <i>📊</i>
+                <span>ダッシュボード</span>
+            </a>
+            <a href="#" class="sidebar-item active">
+                <i>👥</i>
+                <span>社員管理</span>
+            </a>
+            <a href="#" class="sidebar-item">
+                <i>🏢</i>
+                <span>部署管理</span>
+            </a>
+            <a href="#" class="sidebar-item">
+                <i>⚙️</i>
+                <span>役職管理</span>
+            </a>
+        </div>
+
+        <!-- Content -->
+        <div class="content">
+            <div class="content-header">
+                <div>
+                    <h1 class="content-title">社員管理</h1>
+                    <p class="content-subtitle">社員情報の閲覧・編集・管理を行います</p>
+                </div>
+                <button class="add-btn">
+                    <span>+</span>
+                    <span>新規登録</span>
+                </button>
+            </div>
+
+            <div class="search-filters">
+                <input type="text" class="search-input" placeholder="社員名で検索...">
+                <select class="filter-select">
+                    <option>すべての部署</option>
+                    <option>総務部</option>
+                    <option>営業部</option>
+                    <option>開発部</option>
+                </select>
+                <select class="filter-select">
+                    <option>すべての役職</option>
+                    <option>代表取締役</option>
+                    <option>部長</option>
+                    <option>課長</option>
+                </select>
+            </div>
+
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>社員</th>
+                            <th>部署</th>
+                            <th>役職</th>
+                            <th>雇用形態</th>
+                            <th>入社日</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="employee-info">
+                                    <div class="avatar">田</div>
+                                    <div class="employee-details">
+                                        <div class="employee-name">田中 太郎</div>
+                                        <div class="employee-email">tanaka@company.com</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>総務部</td>
+                            <td>代表取締役</td>
+                            <td><span class="status-badge status-active">正社員</span></td>
+                            <td>2020-04-01</td>
+                            <td>
+                                <div class="action-links">
+                                    <a href="#" class="action-link">詳細</a>
+                                    <a href="#" class="action-link edit">編集</a>
+                                    <a href="#" class="action-link delete">削除</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="employee-info">
+                                    <div class="avatar">佐</div>
+                                    <div class="employee-details">
+                                        <div class="employee-name">佐藤 花子</div>
+                                        <div class="employee-email">sato@company.com</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>営業部</td>
+                            <td>部長</td>
+                            <td><span class="status-badge status-active">正社員</span></td>
+                            <td>2021-04-01</td>
+                            <td>
+                                <div class="action-links">
+                                    <a href="#" class="action-link">詳細</a>
+                                    <a href="#" class="action-link edit">編集</a>
+                                    <a href="#" class="action-link delete">削除</a>
+                                </div>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="employee-info">
+                                    <div class="avatar">鈴</div>
+                                    <div class="employee-details">
+                                        <div class="employee-name">鈴木 次郎</div>
+                                        <div class="employee-email">suzuki@company.com</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>開発部</td>
+                            <td>課長</td>
+                            <td><span class="status-badge status-pending">契約社員</span></td>
+                            <td>2022-10-15</td>
+                            <td>
+                                <div class="action-links">
+                                    <a href="#" class="action-link">詳細</a>
+                                    <a href="#" class="action-link edit">編集</a>
+                                    <a href="#" class="action-link delete">削除</a>
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <div class="pagination">
+                    <div class="pagination-info">1 から 3 まで表示 (全 25 件中)</div>
+                    <div class="pagination-controls">
+                        <button class="page-btn" disabled>前へ</button>
+                        <button class="page-btn active">1</button>
+                        <button class="page-btn">2</button>
+                        <button class="page-btn">3</button>
+                        <button class="page-btn">次へ</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

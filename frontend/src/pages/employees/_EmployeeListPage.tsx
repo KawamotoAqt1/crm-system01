@@ -1,0 +1,506 @@
+import React, { useState, useEffect } from 'react';
+
+// 型定義
+interface Employee {
+  id: string;
+  employee_id: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone?: string;
+  department: {
+    id: string;
+    name: string;
+  };
+  position: {
+    id: string;
+    name: string;
+  };
+  employment_type: 'FULL_TIME' | 'CONTRACT' | 'PART_TIME' | 'INTERN';
+  hire_date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Department {
+  id: string;
+  name: string;
+}
+
+interface Position {
+  id: string;
+  name: string;
+}
+
+// 雇用形態の設定
+const EMPLOYMENT_TYPE_CONFIG = {
+  FULL_TIME: { label: '正社員', className: 'bg-green-100 text-green-800' },
+  CONTRACT: { label: '契約社員', className: 'bg-blue-100 text-blue-800' },
+  PART_TIME: { label: 'パート', className: 'bg-yellow-100 text-yellow-800' },
+  INTERN: { label: 'インターン', className: 'bg-purple-100 text-purple-800' }
+};
+
+// モックデータ
+const MOCK_DEPARTMENTS: Department[] = [
+  { id: '1', name: '総務部' },
+  { id: '2', name: '営業部' },
+  { id: '3', name: '開発部' },
+  { id: '4', name: '人事部' },
+  { id: '5', name: '経理部' }
+];
+
+const MOCK_POSITIONS: Position[] = [
+  { id: '1', name: '代表取締役' },
+  { id: '2', name: '部長' },
+  { id: '3', name: '課長' },
+  { id: '4', name: '主任' },
+  { id: '5', name: '一般' }
+];
+
+const MOCK_EMPLOYEES: Employee[] = [
+  {
+    id: '1',
+    employee_id: 'EMP001',
+    first_name: '太郎',
+    last_name: '田中',
+    email: 'tanaka@company.com',
+    phone: '090-1234-5678',
+    department: { id: '1', name: '総務部' },
+    position: { id: '1', name: '代表取締役' },
+    employment_type: 'FULL_TIME',
+    hire_date: '2020-04-01',
+    created_at: '2020-04-01T00:00:00Z',
+    updated_at: '2020-04-01T00:00:00Z'
+  },
+  {
+    id: '2',
+    employee_id: 'EMP002',
+    first_name: '花子',
+    last_name: '佐藤',
+    email: 'sato@company.com',
+    phone: '090-2345-6789',
+    department: { id: '2', name: '営業部' },
+    position: { id: '2', name: '部長' },
+    employment_type: 'FULL_TIME',
+    hire_date: '2021-04-01',
+    created_at: '2021-04-01T00:00:00Z',
+    updated_at: '2021-04-01T00:00:00Z'
+  },
+  {
+    id: '3',
+    employee_id: 'EMP003',
+    first_name: '次郎',
+    last_name: '鈴木',
+    email: 'suzuki@company.com',
+    phone: '090-3456-7890',
+    department: { id: '3', name: '開発部' },
+    position: { id: '3', name: '課長' },
+    employment_type: 'CONTRACT',
+    hire_date: '2022-10-15',
+    created_at: '2022-10-15T00:00:00Z',
+    updated_at: '2022-10-15T00:00:00Z'
+  },
+  {
+    id: '4',
+    employee_id: 'EMP004',
+    first_name: '美香',
+    last_name: '高橋',
+    email: 'takahashi@company.com',
+    phone: '090-4567-8901',
+    department: { id: '4', name: '人事部' },
+    position: { id: '4', name: '主任' },
+    employment_type: 'FULL_TIME',
+    hire_date: '2023-01-15',
+    created_at: '2023-01-15T00:00:00Z',
+    updated_at: '2023-01-15T00:00:00Z'
+  },
+  {
+    id: '5',
+    employee_id: 'EMP005',
+    first_name: '健太',
+    last_name: '山田',
+    email: 'yamada@company.com',
+    phone: '090-5678-9012',
+    department: { id: '3', name: '開発部' },
+    position: { id: '5', name: '一般' },
+    employment_type: 'PART_TIME',
+    hire_date: '2023-06-01',
+    created_at: '2023-06-01T00:00:00Z',
+    updated_at: '2023-06-01T00:00:00Z'
+  }
+];
+
+const EmployeeListPage: React.FC = () => {
+  // 状態管理
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
+  const [departments] = useState<Department[]>(MOCK_DEPARTMENTS);
+  const [positions] = useState<Position[]>(MOCK_POSITIONS);
+  const [loading, setLoading] = useState(false);
+
+  // 検索・フィルタ状態
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedDepartment, setSelectedDepartment] = useState('');
+  const [selectedPosition, setSelectedPosition] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // 初期データ読み込み - ローディングなしに変更
+  useEffect(() => {
+    // ローディングを表示せずに即座にデータを設定
+    setEmployees(MOCK_EMPLOYEES);
+    setFilteredEmployees(MOCK_EMPLOYEES);
+    setLoading(false);
+  }, []);
+
+  // 検索・フィルタリング処理
+  useEffect(() => {
+    let filtered = [...employees];
+
+    // 検索フィルタ
+    if (searchTerm) {
+      filtered = filtered.filter(emp => 
+        emp.first_name.includes(searchTerm) ||
+        emp.last_name.includes(searchTerm) ||
+        emp.email.includes(searchTerm)
+      );
+    }
+
+    // 部署フィルタ
+    if (selectedDepartment) {
+      filtered = filtered.filter(emp => emp.department.name === selectedDepartment);
+    }
+
+    // 役職フィルタ
+    if (selectedPosition) {
+      filtered = filtered.filter(emp => emp.position.name === selectedPosition);
+    }
+
+    setFilteredEmployees(filtered);
+    setCurrentPage(1);
+  }, [employees, searchTerm, selectedDepartment, selectedPosition]);
+
+  // ページネーション計算
+  const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
+
+  // ハンドラー関数
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setSearchTerm(e.target.value);
+  };
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const handleAction = (action: string, employeeId: string) => {
+    console.log(`${action} action for employee:`, employeeId);
+  };
+
+  // アバターコンポーネント - サイズ固定
+  const Avatar: React.FC<{ firstName: string; lastName: string }> = ({ firstName, lastName }) => (
+    <div className="h-10 w-10 rounded-full bg-gray-300 flex items-center justify-center flex-shrink-0">
+      <span className="text-sm font-medium text-gray-700">
+        {lastName.charAt(0)}{firstName.charAt(0)}
+      </span>
+    </div>
+  );
+
+  // 雇用形態バッジコンポーネント - コンポーネント内で定義
+  const EmploymentTypeBadge: React.FC<{ type: Employee['employment_type'] }> = ({ type }) => {
+    const config = EMPLOYMENT_TYPE_CONFIG[type];
+    return (
+      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${config.className}`}>
+        {config.label}
+      </span>
+    );
+  };
+
+  // ページネーションコンポーネント
+  const Pagination: React.FC = () => {
+    if (totalPages <= 1) return null;
+
+    const getPageNumbers = () => {
+      const pages = [];
+      const showPages = 5;
+      let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
+      let endPage = Math.min(totalPages, startPage + showPages - 1);
+      
+      if (endPage - startPage < showPages - 1) {
+        startPage = Math.max(1, endPage - showPages + 1);
+      }
+
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+      return pages;
+    };
+
+    const displayStartIndex = startIndex + 1;
+    const displayEndIndex = Math.min(endIndex, filteredEmployees.length);
+
+    return (
+      <div className="flex items-center justify-between">
+        <div className="text-sm text-gray-700">
+          <span className="font-medium">{displayStartIndex}</span> から{' '}
+          <span className="font-medium">{displayEndIndex}</span> まで表示（全{' '}
+          <span className="font-medium">{filteredEmployees.length}</span> 件中）
+        </div>
+        <div className="flex space-x-2">
+          <button
+            onClick={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+            className="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            前へ
+          </button>
+          {getPageNumbers().map((page) => (
+            <button
+              key={page}
+              onClick={() => handlePageChange(page)}
+              className={`px-3 py-1 text-sm border rounded-md ${
+                page === currentPage
+                  ? 'border-blue-600 bg-blue-600 text-white'
+                  : 'border-gray-300 text-gray-700 hover:bg-gray-50'
+              }`}
+            >
+              {page}
+            </button>
+          ))}
+          <button
+            onClick={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 text-sm border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            次へ
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  // デスクトップ用テーブル
+  const DesktopTable: React.FC = () => (
+    <div className="hidden lg:block overflow-x-auto">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">社員</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">部署</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">役職</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">雇用形態</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">入社日</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">
+          {currentEmployees.map((employee) => (
+            <tr key={employee.id} className="hover:bg-gray-50 transition-colors">
+              <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center">
+                  <Avatar firstName={employee.first_name} lastName={employee.last_name} />
+                  <div className="ml-4">
+                    <div className="text-sm font-medium text-gray-900">
+                      {employee.last_name} {employee.first_name}
+                    </div>
+                    <div className="text-sm text-gray-500">{employee.email}</div>
+                  </div>
+                </div>
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {employee.department.name}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {employee.position.name}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap">
+                <EmploymentTypeBadge type={employee.employment_type} />
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                {new Date(employee.hire_date).toLocaleDateString('ja-JP')}
+              </td>
+              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div className="flex space-x-2">
+                  <button 
+                    onClick={() => handleAction('view', employee.id)}
+                    className="text-blue-600 hover:text-blue-900 transition-colors"
+                  >
+                    詳細
+                  </button>
+                  <button 
+                    onClick={() => handleAction('edit', employee.id)}
+                    className="text-green-600 hover:text-green-900 transition-colors"
+                  >
+                    編集
+                  </button>
+                  <button 
+                    onClick={() => handleAction('delete', employee.id)}
+                    className="text-red-600 hover:text-red-900 transition-colors"
+                  >
+                    削除
+                  </button>
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+
+  // モバイル用カード表示
+  const MobileCards: React.FC = () => (
+    <div className="lg:hidden">
+      {currentEmployees.map((employee) => (
+        <div key={employee.id} className="border-b border-gray-200 p-4">
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center space-x-3">
+              <Avatar firstName={employee.first_name} lastName={employee.last_name} />
+              <div>
+                <div className="text-sm font-medium text-gray-900">
+                  {employee.last_name} {employee.first_name}
+                </div>
+                <div className="text-sm text-gray-500">{employee.email}</div>
+              </div>
+            </div>
+            <EmploymentTypeBadge type={employee.employment_type} />
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+            <div>
+              <span className="text-gray-500">部署:</span> {employee.department.name}
+            </div>
+            <div>
+              <span className="text-gray-500">役職:</span> {employee.position.name}
+            </div>
+            <div className="col-span-2">
+              <span className="text-gray-500">入社日:</span> {new Date(employee.hire_date).toLocaleDateString('ja-JP')}
+            </div>
+          </div>
+          
+          <div className="flex space-x-3">
+            <button 
+              onClick={() => handleAction('view', employee.id)}
+              className="text-xs text-blue-600 hover:text-blue-900 transition-colors"
+            >
+              詳細
+            </button>
+            <button 
+              onClick={() => handleAction('edit', employee.id)}
+              className="text-xs text-green-600 hover:text-green-900 transition-colors"
+            >
+              編集
+            </button>
+            <button 
+              onClick={() => handleAction('delete', employee.id)}
+              className="text-xs text-red-600 hover:text-red-900 transition-colors"
+            >
+              削除
+            </button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+
+  // メインレンダリング
+  return (
+    <div className="h-full">
+      <div className="p-8">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          {/* ページヘッダー */}
+          <div className="px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">社員管理</h2>
+                <p className="text-sm text-gray-600 mt-1">社員情報の閲覧・編集・管理を行います</p>
+              </div>
+              <button 
+                onClick={() => handleAction('create', '')}
+                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                </svg>
+                <span>新規登録</span>
+              </button>
+            </div>
+          </div>
+
+          {/* 検索・フィルタエリア */}
+          <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+            <div className="flex flex-col sm:flex-row sm:items-center space-y-4 sm:space-y-0 sm:space-x-4">
+              {/* 検索ボックス */}
+              <div className="flex-1 max-w-md">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="社員名で検索..."
+                    value={searchTerm}
+                    onChange={handleSearchChange}
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <svg className="h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </div>
+
+              {/* 部署フィルタ */}
+              <select
+                value={selectedDepartment}
+                onChange={(e) => setSelectedDepartment(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">すべての部署</option>
+                {departments.map((dept) => (
+                  <option key={dept.id} value={dept.name}>
+                    {dept.name}
+                  </option>
+                ))}
+              </select>
+
+              {/* 役職フィルタ */}
+              <select
+                value={selectedPosition}
+                onChange={(e) => setSelectedPosition(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">すべての役職</option>
+                {positions.map((pos) => (
+                  <option key={pos.id} value={pos.name}>
+                    {pos.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* データ表示 - ローディング表示を削除 */}
+          <DesktopTable />
+          <MobileCards />
+
+          {/* データが空の場合 */}
+          {filteredEmployees.length === 0 && (
+            <div className="px-6 py-8 text-center">
+              <p className="text-gray-500">条件に一致する社員が見つかりませんでした。</p>
+            </div>
+          )}
+
+          {/* ページネーション */}
+          {filteredEmployees.length > 0 && (
+            <div className="px-6 py-4 border-t border-gray-200">
+              <Pagination />
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default EmployeeListPage;

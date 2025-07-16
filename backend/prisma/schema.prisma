@@ -1,0 +1,104 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EmploymentType {
+  REGULAR    // 正社員
+  CONTRACT   // 契約社員
+  TEMPORARY  // 派遣
+  PART_TIME  // アルバイト
+}
+
+enum UserRole {
+  ADMIN         // システム管理者
+  HR_MANAGER    // 人事担当者
+  SALES_MANAGER // 営業管理者
+  EMPLOYEE      // 一般社員
+}
+
+model Department {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(100)
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // Relations
+  employees Employee[]
+
+  @@map("departments")
+}
+
+model Position {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(100)
+  level       Int       // 1-10のレベル
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // Relations
+  employees Employee[]
+
+  @@map("positions")
+}
+
+model Employee {
+  id               String         @id @default(uuid()) @db.Uuid
+  employeeId       String         @unique @map("employee_id") @db.VarChar(20)
+  firstName        String         @map("first_name") @db.VarChar(50)
+  lastName         String         @map("last_name") @db.VarChar(50)
+  firstNameKana    String?        @map("first_name_kana") @db.VarChar(100)
+  lastNameKana     String?        @map("last_name_kana") @db.VarChar(100)
+  email            String         @unique @db.VarChar(255)
+  phone            String?        @db.VarChar(20)
+  departmentId     String         @map("department_id") @db.Uuid
+  positionId       String         @map("position_id") @db.Uuid
+  hireDate         DateTime       @map("hire_date") @db.Date
+  employmentType   EmploymentType @map("employment_type")
+  birthDate        DateTime?      @map("birth_date") @db.Date
+  address          String?        @db.Text
+  emergencyContact String?        @map("emergency_contact") @db.Text
+  education        String?        @db.Text
+  workHistory      String?        @map("work_history") @db.Text
+  skills           String?        @db.Text
+  photoUrl         String?        @map("photo_url") @db.VarChar(500)
+  notes            String?        @db.Text
+  createdAt        DateTime       @default(now()) @map("created_at")
+  updatedAt        DateTime       @updatedAt @map("updated_at")
+  deletedAt        DateTime?      @map("deleted_at")
+
+  // Relations
+  department Department @relation(fields: [departmentId], references: [id])
+  position   Position   @relation(fields: [positionId], references: [id])
+  user       User?
+
+  @@map("employees")
+}
+
+model User {
+  id           String    @id @default(uuid()) @db.Uuid
+  employeeId   String    @unique @map("employee_id") @db.Uuid
+  username     String    @unique @db.VarChar(50)
+  passwordHash String    @map("password_hash") @db.VarChar(255)
+  role         UserRole
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  employee Employee @relation(fields: [employeeId], references: [id])
+
+  @@map("users")
+}

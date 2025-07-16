@@ -10,6 +10,7 @@ interface LoginPageProps {
 export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, loading = false }) => {
   const [credentials, setCredentials] = useState<LoginCredentials>({
     username: '',
+    email: '',
     password: '',
   });
   const [error, setError] = useState<string>('');
@@ -31,7 +32,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, loading = false }
     e.preventDefault();
     
     // バリデーション
-    if (!credentials.username.trim()) {
+    if (!credentials.username?.trim()) {
       setError('ユーザー名を入力してください');
       return;
     }
@@ -92,7 +93,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, loading = false }
               name="username"
               label="ユーザー名"
               type="text"
-              value={credentials.username}
+                             value={credentials.username || ''}
               onChange={handleInputChange('username')}
               placeholder="ユーザー名を入力"
               required

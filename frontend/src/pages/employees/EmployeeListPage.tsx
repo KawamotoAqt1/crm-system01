@@ -1,150 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
-
-// 型定義
-interface Employee {
-  id: string;
-  employee_id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone?: string;
-  department: {
-    id: string;
-    name: string;
-  };
-  position: {
-    id: string;
-    name: string;
-  };
-  employment_type: 'FULL_TIME' | 'CONTRACT' | 'PART_TIME' | 'INTERN';
-  hire_date: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface Department {
-  id: string;
-  name: string;
-}
-
-interface Position {
-  id: string;
-  name: string;
-}
-
-interface NewEmployeeForm {
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  department_id: string;
-  position_id: string;
-  employment_type: 'FULL_TIME' | 'CONTRACT' | 'PART_TIME' | 'INTERN';
-  hire_date: string;
-}
-
-const EMPLOYMENT_TYPE_CONFIG = {
-  FULL_TIME: { label: '正社員', className: 'status-badge status-active' },
-  CONTRACT: { label: '契約社員', className: 'status-badge status-pending' },
-  PART_TIME: { label: 'パート', className: 'status-badge status-pending' },
-  INTERN: { label: 'インターン', className: 'status-badge status-pending' }
-};
-
-const MOCK_DEPARTMENTS: Department[] = [
-  { id: '1', name: '総務部' },
-  { id: '2', name: '営業部' },
-  { id: '3', name: '開発部' },
-  { id: '4', name: '人事部' },
-  { id: '5', name: '経理部' }
-];
-
-const MOCK_POSITIONS: Position[] = [
-  { id: '1', name: '代表取締役' },
-  { id: '2', name: '部長' },
-  { id: '3', name: '課長' },
-  { id: '4', name: '主任' },
-  { id: '5', name: '一般' }
-];
-
-const MOCK_EMPLOYEES: Employee[] = [
-  {
-    id: '1',
-    employee_id: 'EMP001',
-    first_name: '太郎',
-    last_name: '田中',
-    email: 'tanaka@company.com',
-    phone: '090-1234-5678',
-    department: { id: '1', name: '総務部' },
-    position: { id: '1', name: '代表取締役' },
-    employment_type: 'FULL_TIME',
-    hire_date: '2020-04-01',
-    created_at: '2020-04-01T00:00:00Z',
-    updated_at: '2020-04-01T00:00:00Z'
-  },
-  {
-    id: '2',
-    employee_id: 'EMP002',
-    first_name: '花子',
-    last_name: '佐藤',
-    email: 'sato@company.com',
-    phone: '090-2345-6789',
-    department: { id: '2', name: '営業部' },
-    position: { id: '2', name: '部長' },
-    employment_type: 'FULL_TIME',
-    hire_date: '2021-04-01',
-    created_at: '2021-04-01T00:00:00Z',
-    updated_at: '2021-04-01T00:00:00Z'
-  },
-  {
-    id: '3',
-    employee_id: 'EMP003',
-    first_name: '次郎',
-    last_name: '鈴木',
-    email: 'suzuki@company.com',
-    phone: '090-3456-7890',
-    department: { id: '3', name: '開発部' },
-    position: { id: '3', name: '課長' },
-    employment_type: 'CONTRACT',
-    hire_date: '2022-10-15',
-    created_at: '2022-10-15T00:00:00Z',
-    updated_at: '2022-10-15T00:00:00Z'
-  },
-  {
-    id: '4',
-    employee_id: 'EMP004',
-    first_name: '美香',
-    last_name: '高橋',
-    email: 'takahashi@company.com',
-    phone: '090-4567-8901',
-    department: { id: '4', name: '人事部' },
-    position: { id: '4', name: '主任' },
-    employment_type: 'FULL_TIME',
-    hire_date: '2023-01-15',
-    created_at: '2023-01-15T00:00:00Z',
-    updated_at: '2023-01-15T00:00:00Z'
-  },
-  {
-    id: '5',
-    employee_id: 'EMP005',
-    first_name: '健太',
-    last_name: '山田',
-    email: 'yamada@company.com',
-    phone: '090-5678-9012',
-    department: { id: '3', name: '開発部' },
-    position: { id: '5', name: '一般' },
-    employment_type: 'PART_TIME',
-    hire_date: '2023-06-01',
-    created_at: '2023-06-01T00:00:00Z',
-    updated_at: '2023-06-01T00:00:00Z'
-  }
-];
+import { apiService } from '../../services/api';
+import { Employee, Department, Position, NewEmployeeForm, EMPLOYMENT_TYPE_CONFIG } from '../../types';
 
 const EmployeeListPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
-  const [departments] = useState<Department[]>(MOCK_DEPARTMENTS);
-  const [positions] = useState<Position[]>(MOCK_POSITIONS);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [positions, setPositions] = useState<Position[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  
+  // 検索・フィルタ関連
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('');
@@ -156,14 +23,14 @@ const EmployeeListPage: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState<NewEmployeeForm>({
-    first_name: '',
-    last_name: '',
+    firstName: '',
+    lastName: '',
     email: '',
     phone: '',
-    department_id: '',
-    position_id: '',
-    employment_type: 'FULL_TIME',
-    hire_date: ''
+    departmentId: '',
+    positionId: '',
+    employmentType: 'REGULAR',
+    hireDate: ''
   });
   const [formErrors, setFormErrors] = useState<Partial<NewEmployeeForm>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -177,26 +44,117 @@ const EmployeeListPage: React.FC = () => {
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailEmployee, setDetailEmployee] = useState<Employee | null>(null);
 
+  // データ取得
   useEffect(() => {
-    setEmployees(MOCK_EMPLOYEES);
-    setFilteredEmployees(MOCK_EMPLOYEES);
+    loadInitialData();
   }, []);
 
+  const loadInitialData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // APIサービスが利用できるかチェック
+      if (typeof apiService === 'undefined' || !apiService.getEmployees) {
+        // フォールバック：モックデータを使用
+        console.warn('APIサービスが利用できません。モックデータを使用します。');
+        
+        const mockEmployees = [
+          {
+            id: '1',
+            employeeId: 'EMP001',
+            firstName: '太郎',
+            lastName: '田中',
+            email: 'tanaka@company.com',
+            phone: '090-1234-5678',
+            department: { id: '1', name: '総務部' },
+            position: { id: '1', name: '代表取締役' },
+            employmentType: 'REGULAR' as const,
+            hireDate: '2020-04-01',
+            createdAt: '2020-04-01T00:00:00Z',
+            updatedAt: '2020-04-01T00:00:00Z'
+          },
+          {
+            id: '2',
+            employeeId: 'EMP002',
+            firstName: '花子',
+            lastName: '佐藤',
+            email: 'sato@company.com',
+            phone: '090-2345-6789',
+            department: { id: '2', name: '営業部' },
+            position: { id: '2', name: '部長' },
+            employmentType: 'REGULAR' as const,
+            hireDate: '2021-04-01',
+            createdAt: '2021-04-01T00:00:00Z',
+            updatedAt: '2021-04-01T00:00:00Z'
+          }
+        ];
+        
+        const mockDepartments = [
+          { id: '1', name: '総務部' },
+          { id: '2', name: '営業部' },
+          { id: '3', name: '開発部' }
+        ];
+        
+        const mockPositions = [
+          { id: '1', name: '代表取締役' },
+          { id: '2', name: '部長' },
+          { id: '3', name: '課長' }
+        ];
+        
+        // モックデータで遅延をシミュレート
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        setEmployees(mockEmployees);
+        setFilteredEmployees(mockEmployees);
+        setDepartments(mockDepartments);
+        setPositions(mockPositions);
+        
+        return;
+      }
+      
+      // 並列でデータを取得
+      const [employeesData, departmentsData, positionsData] = await Promise.all([
+        apiService.getEmployees(),
+        apiService.getDepartments(),
+        apiService.getPositions()
+      ]);
+
+      setEmployees(Array.isArray(employeesData?.data) ? employeesData.data : []);
+      setFilteredEmployees(Array.isArray(employeesData?.data) ? employeesData.data : []);
+      setDepartments(Array.isArray(departmentsData?.data) ? departmentsData.data : []);
+      setPositions(Array.isArray(positionsData?.data) ? positionsData.data : []);
+      
+    } catch (err) {
+      console.error('データ取得エラー:', err);
+      setError('データの取得に失敗しました。ページを再読み込みしてください。');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // フィルタリング処理
   useEffect(() => {
+    if (!Array.isArray(employees)) return;
+    
     let filtered = [...employees];
+    
     if (searchTerm) {
       filtered = filtered.filter(emp => 
-        emp.first_name.includes(searchTerm) ||
-        emp.last_name.includes(searchTerm) ||
+        emp.firstName.includes(searchTerm) ||
+        emp.lastName.includes(searchTerm) ||
         emp.email.includes(searchTerm)
       );
     }
+    
     if (selectedDepartment) {
       filtered = filtered.filter(emp => emp.department.name === selectedDepartment);
     }
+    
     if (selectedPosition) {
       filtered = filtered.filter(emp => emp.position.name === selectedPosition);
     }
+    
     setFilteredEmployees(filtered);
     setCurrentPage(1);
   }, [employees, searchTerm, selectedDepartment, selectedPosition]);
@@ -204,17 +162,17 @@ const EmployeeListPage: React.FC = () => {
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
+  const currentEmployees = Array.isArray(filteredEmployees) ? filteredEmployees.slice(startIndex, endIndex) : [];
 
   // フォーム関連の関数
   const validateForm = (): boolean => {
     const errors: Partial<NewEmployeeForm> = {};
     
-    if (!formData.first_name.trim()) {
-      errors.first_name = '名前を入力してください';
+    if (!formData.firstName.trim()) {
+      errors.firstName = '名前を入力してください';
     }
-    if (!formData.last_name.trim()) {
-      errors.last_name = '姓を入力してください';
+    if (!formData.lastName.trim()) {
+      errors.lastName = '姓を入力してください';
     }
     if (!formData.email.trim()) {
       errors.email = 'メールアドレスを入力してください';
@@ -227,14 +185,14 @@ const EmployeeListPage: React.FC = () => {
         errors.email = 'このメールアドレスは既に使用されています';
       }
     }
-    if (!formData.department_id) {
-      errors.department_id = '部署を選択してください';
+    if (!formData.departmentId) {
+      errors.departmentId = '部署を選択してください';
     }
-    if (!formData.position_id) {
-      errors.position_id = '役職を選択してください';
+    if (!formData.positionId) {
+      errors.positionId = '役職を選択してください';
     }
-    if (!formData.hire_date) {
-      errors.hire_date = '入社日を入力してください';
+    if (!formData.hireDate) {
+      errors.hireDate = '入社日を入力してください';
     }
 
     setFormErrors(errors);
@@ -242,10 +200,10 @@ const EmployeeListPage: React.FC = () => {
   };
 
   const handleInputChange = (field: keyof NewEmployeeForm, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
+    setFormData((prev: NewEmployeeForm) => ({ ...prev, [field]: value }));
     // エラーをクリア
     if (formErrors[field]) {
-      setFormErrors(prev => ({ ...prev, [field]: undefined }));
+      setFormErrors((prev: Partial<NewEmployeeForm>) => ({ ...prev, [field]: undefined }));
     }
   };
 
@@ -261,60 +219,26 @@ const EmployeeListPage: React.FC = () => {
     try {
       if (modalMode === 'create') {
         // 新規登録処理
-        const newEmployeeId = `EMP${String(employees.length + 1).padStart(3, '0')}`;
-        
-        const department = departments.find(d => d.id === formData.department_id);
-        const position = positions.find(p => p.id === formData.position_id);
-        
-        const newEmployee: Employee = {
-          id: Date.now().toString(),
-          employee_id: newEmployeeId,
-          first_name: formData.first_name.trim(),
-          last_name: formData.last_name.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim(),
-          department: department!,
-          position: position!,
-          employment_type: formData.employment_type,
-          hire_date: formData.hire_date,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        setEmployees(prev => [...prev, newEmployee]);
+        const newEmployeeResponse = await apiService.createEmployee(formData);
+        setEmployees(prev => [...prev, newEmployeeResponse.data]);
         alert('社員を正常に登録しました');
         
       } else {
         // 編集処理
-        const department = departments.find(d => d.id === formData.department_id);
-        const position = positions.find(p => p.id === formData.position_id);
-        
-        const updatedEmployee: Employee = {
-          ...editingEmployee!,
-          first_name: formData.first_name.trim(),
-          last_name: formData.last_name.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim(),
-          department: department!,
-          position: position!,
-          employment_type: formData.employment_type,
-          hire_date: formData.hire_date,
-          updated_at: new Date().toISOString()
-        };
-
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        const updatedEmployeeResponse = await apiService.updateEmployee(editingEmployee!.id, formData);
         setEmployees(prev => prev.map(emp => 
-          emp.id === editingEmployee!.id ? updatedEmployee : emp
+          emp.id === editingEmployee!.id ? updatedEmployeeResponse.data : emp
         ));
         alert('社員情報を正常に更新しました');
       }
       
       closeModal();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('処理エラー:', error);
-      alert(modalMode === 'create' ? '社員登録に失敗しました' : '社員情報の更新に失敗しました');
+      const errorMessage = error.response?.data?.message || 
+        (modalMode === 'create' ? '社員登録に失敗しました' : '社員情報の更新に失敗しました');
+      alert(errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -324,14 +248,14 @@ const EmployeeListPage: React.FC = () => {
     setModalMode('create');
     setEditingEmployee(null);
     setFormData({
-      first_name: '',
-      last_name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phone: '',
-      department_id: '',
-      position_id: '',
-      employment_type: 'FULL_TIME',
-      hire_date: ''
+      departmentId: '',
+      positionId: '',
+      employmentType: 'REGULAR',
+      hireDate: ''
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -341,14 +265,14 @@ const EmployeeListPage: React.FC = () => {
     setModalMode('edit');
     setEditingEmployee(employee);
     setFormData({
-      first_name: employee.first_name,
-      last_name: employee.last_name,
+      firstName: employee.firstName,
+      lastName: employee.lastName,
       email: employee.email,
       phone: employee.phone || '',
-      department_id: employee.department.id,
-      position_id: employee.position.id,
-      employment_type: employee.employment_type,
-      hire_date: employee.hire_date
+      departmentId: employee.department.id,
+      positionId: employee.position.id,
+      employmentType: employee.employmentType,
+      hireDate: employee.hireDate
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -370,21 +294,15 @@ const EmployeeListPage: React.FC = () => {
     setIsDeleting(true);
     
     try {
-      // モック：実際のAPIコールをシミュレート
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // 社員リストから削除
+      await apiService.deleteEmployee(deletingEmployee.id);
       setEmployees(prev => prev.filter(emp => emp.id !== deletingEmployee.id));
-      
-      // 成功メッセージ
-      alert(`${deletingEmployee.last_name} ${deletingEmployee.first_name}さんを削除しました`);
-      
-      // ダイアログを閉じる
+      alert(`${deletingEmployee.lastName} ${deletingEmployee.firstName}さんを削除しました`);
       closeDeleteDialog();
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('削除エラー:', error);
-      alert('社員の削除に失敗しました');
+      const errorMessage = error.response?.data?.message || '社員の削除に失敗しました';
+      alert(errorMessage);
     } finally {
       setIsDeleting(false);
     }
@@ -405,23 +323,82 @@ const EmployeeListPage: React.FC = () => {
     setModalMode('create');
     setEditingEmployee(null);
     setFormData({
-      first_name: '',
-      last_name: '',
+      firstName: '',
+      lastName: '',
       email: '',
       phone: '',
-      department_id: '',
-      position_id: '',
-      employment_type: 'FULL_TIME',
-      hire_date: ''
+      departmentId: '',
+      positionId: '',
+      employmentType: 'REGULAR',
+      hireDate: ''
     });
     setFormErrors({});
   };
 
   // UIコンポーネント
-  const EmploymentTypeBadge: React.FC<{ type: Employee['employment_type'] }> = ({ type }) => {
+  const EmploymentTypeBadge: React.FC<{ type: Employee['employmentType'] }> = ({ type }) => {
     const config = EMPLOYMENT_TYPE_CONFIG[type];
     return <span className={config.className}>{config.label}</span>;
   };
+
+  // ローディング表示
+  if (loading) {
+    return (
+      <Layout>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '400px',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{
+            width: '40px',
+            height: '40px',
+            border: '4px solid #f3f4f6',
+            borderTop: '4px solid #3b82f6',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
+          }}></div>
+          <p style={{ color: '#6b7280', fontSize: '14px' }}>データを読み込み中...</p>
+        </div>
+      </Layout>
+    );
+  }
+
+  // エラー表示
+  if (error) {
+    return (
+      <Layout>
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          height: '400px',
+          flexDirection: 'column',
+          gap: '16px'
+        }}>
+          <div style={{ fontSize: '48px' }}>⚠️</div>
+          <p style={{ color: '#dc2626', fontSize: '16px', fontWeight: '500' }}>エラーが発生しました</p>
+          <p style={{ color: '#6b7280', fontSize: '14px', textAlign: 'center' }}>{error}</p>
+          <button
+            onClick={loadInitialData}
+            style={{
+              padding: '8px 16px',
+              backgroundColor: '#3b82f6',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer'
+            }}
+          >
+            再読み込み
+          </button>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -450,7 +427,7 @@ const EmployeeListPage: React.FC = () => {
           onChange={e => setSelectedDepartment(e.target.value)}
         >
           <option value="">すべての部署</option>
-          {departments.map(dep => (
+          {Array.isArray(departments) && departments.map(dep => (
             <option key={dep.id} value={dep.name}>{dep.name}</option>
           ))}
         </select>
@@ -460,7 +437,7 @@ const EmployeeListPage: React.FC = () => {
           onChange={e => setSelectedPosition(e.target.value)}
         >
           <option value="">すべての役職</option>
-          {positions.map(pos => (
+          {Array.isArray(positions) && positions.map(pos => (
             <option key={pos.id} value={pos.name}>{pos.name}</option>
           ))}
         </select>
@@ -479,69 +456,82 @@ const EmployeeListPage: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {currentEmployees.map(emp => (
-              <tr key={emp.id}>
-                <td>
-                  <div className="employee-info">
-                    <div className="avatar">{emp.last_name[0]}</div>
-                    <div className="employee-details">
-                      <div className="employee-name">{emp.last_name} {emp.first_name}</div>
-                      <div className="employee-email">{emp.email}</div>
+            {Array.isArray(currentEmployees) && currentEmployees.length > 0 ? (
+              currentEmployees.map(emp => (
+                <tr key={emp.id}>
+                  <td>
+                    <div className="employee-info">
+                      <div className="avatar">{emp.lastName[0]}</div>
+                      <div className="employee-details">
+                        <div className="employee-name">{emp.lastName} {emp.firstName}</div>
+                        <div className="employee-email">{emp.email}</div>
+                      </div>
                     </div>
-                  </div>
-                </td>
-                <td>{emp.department.name}</td>
-                <td>{emp.position.name}</td>
-                <td><EmploymentTypeBadge type={emp.employment_type} /></td>
-                <td>{emp.hire_date}</td>
-                <td>
-                  <div className="action-links">
-                    <a 
-                      href="#" 
-                      className="action-link"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        openDetailModal(emp);
-                      }}
-                    >
-                      詳細
-                    </a>
-                    <a 
-                      href="#" 
-                      className="action-link edit"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        openEditModal(emp);
-                      }}
-                    >
-                      編集
-                    </a>
-                    <a 
-                      href="#" 
-                      className="action-link delete"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        openDeleteDialog(emp);
-                      }}
-                    >
-                      削除
-                    </a>
-                  </div>
+                  </td>
+                  <td>{emp.department.name}</td>
+                  <td>{emp.position.name}</td>
+                  <td><EmploymentTypeBadge type={emp.employmentType} /></td>
+                  <td>{emp.hireDate}</td>
+                  <td>
+                    <div className="action-links">
+                      <a 
+                        href="#" 
+                        className="action-link"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openDetailModal(emp);
+                        }}
+                      >
+                        詳細
+                      </a>
+                      <a 
+                        href="#" 
+                        className="action-link edit"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openEditModal(emp);
+                        }}
+                      >
+                        編集
+                      </a>
+                      <a 
+                        href="#" 
+                        className="action-link delete"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          openDeleteDialog(emp);
+                        }}
+                      >
+                        削除
+                      </a>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            ) : (
+              <tr>
+                <td colSpan={6} style={{ 
+                  textAlign: 'center', 
+                  padding: '40px 20px',
+                  color: '#6b7280',
+                  fontSize: '14px' 
+                }}>
+                  {loading ? 'データを読み込み中...' : 'データがありません'}
                 </td>
               </tr>
-            ))}
+            )}
           </tbody>
         </table>
         
         <div className="pagination">
           <div className="pagination-info">
-            {filteredEmployees.length === 0
+            {!Array.isArray(filteredEmployees) || filteredEmployees.length === 0
               ? '0 件'
               : `${startIndex + 1} から ${Math.min(endIndex, filteredEmployees.length)} まで表示 (全 ${filteredEmployees.length} 件中)`}
           </div>
           <div className="pagination-controls">
             <button className="page-btn" onClick={() => setCurrentPage(currentPage - 1)} disabled={currentPage === 1}>前へ</button>
-            {Array.from({ length: totalPages }, (_, i) => (
+            {totalPages > 0 && Array.from({ length: totalPages }, (_, i) => (
               <button
                 key={i + 1}
                 className={`page-btn${currentPage === i + 1 ? ' active' : ''}`}
@@ -555,7 +545,7 @@ const EmployeeListPage: React.FC = () => {
         </div>
       </div>
 
-      {/* 新規登録モーダル */}
+      {/* 新規登録・編集モーダル */}
       {isModalOpen && (
         <div style={{
           position: 'fixed',
@@ -630,21 +620,21 @@ const EmployeeListPage: React.FC = () => {
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      border: `1px solid ${formErrors.last_name ? '#ef4444' : '#d1d5db'}`,
+                      border: `1px solid ${formErrors.lastName ? '#ef4444' : '#d1d5db'}`,
                       borderRadius: '6px',
                       fontSize: '14px',
                       outline: 'none',
                       transition: 'border-color 0.2s',
                       boxSizing: 'border-box'
                     }}
-                    value={formData.last_name}
-                    onChange={e => handleInputChange('last_name', e.target.value)}
+                    value={formData.lastName}
+                    onChange={e => handleInputChange('lastName', e.target.value)}
                     placeholder="田中"
                     onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={e => e.target.style.borderColor = formErrors.last_name ? '#ef4444' : '#d1d5db'}
+                    onBlur={e => e.target.style.borderColor = formErrors.lastName ? '#ef4444' : '#d1d5db'}
                   />
-                  {formErrors.last_name && (
-                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.last_name}</span>
+                  {formErrors.lastName && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.lastName}</span>
                   )}
                 </div>
 
@@ -663,21 +653,21 @@ const EmployeeListPage: React.FC = () => {
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      border: `1px solid ${formErrors.first_name ? '#ef4444' : '#d1d5db'}`,
+                      border: `1px solid ${formErrors.firstName ? '#ef4444' : '#d1d5db'}`,
                       borderRadius: '6px',
                       fontSize: '14px',
                       outline: 'none',
                       transition: 'border-color 0.2s',
                       boxSizing: 'border-box'
                     }}
-                    value={formData.first_name}
-                    onChange={e => handleInputChange('first_name', e.target.value)}
+                    value={formData.firstName}
+                    onChange={e => handleInputChange('firstName', e.target.value)}
                     placeholder="太郎"
                     onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={e => e.target.style.borderColor = formErrors.first_name ? '#ef4444' : '#d1d5db'}
+                    onBlur={e => e.target.style.borderColor = formErrors.firstName ? '#ef4444' : '#d1d5db'}
                   />
-                  {formErrors.first_name && (
-                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.first_name}</span>
+                  {formErrors.firstName && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.firstName}</span>
                   )}
                 </div>
 
@@ -759,7 +749,7 @@ const EmployeeListPage: React.FC = () => {
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      border: `1px solid ${formErrors.department_id ? '#ef4444' : '#d1d5db'}`,
+                      border: `1px solid ${formErrors.departmentId ? '#ef4444' : '#d1d5db'}`,
                       borderRadius: '6px',
                       fontSize: '14px',
                       outline: 'none',
@@ -767,18 +757,18 @@ const EmployeeListPage: React.FC = () => {
                       boxSizing: 'border-box',
                       backgroundColor: 'white'
                     }}
-                    value={formData.department_id}
-                    onChange={e => handleInputChange('department_id', e.target.value)}
+                    value={formData.departmentId}
+                    onChange={e => handleInputChange('departmentId', e.target.value)}
                     onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={e => e.target.style.borderColor = formErrors.department_id ? '#ef4444' : '#d1d5db'}
+                    onBlur={e => e.target.style.borderColor = formErrors.departmentId ? '#ef4444' : '#d1d5db'}
                   >
                     <option value="">部署を選択してください</option>
-                    {departments.map(dept => (
+                    {Array.isArray(departments) && departments.map(dept => (
                       <option key={dept.id} value={dept.id}>{dept.name}</option>
                     ))}
                   </select>
-                  {formErrors.department_id && (
-                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.department_id}</span>
+                  {formErrors.departmentId && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.departmentId}</span>
                   )}
                 </div>
 
@@ -797,7 +787,7 @@ const EmployeeListPage: React.FC = () => {
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      border: `1px solid ${formErrors.position_id ? '#ef4444' : '#d1d5db'}`,
+                      border: `1px solid ${formErrors.positionId ? '#ef4444' : '#d1d5db'}`,
                       borderRadius: '6px',
                       fontSize: '14px',
                       outline: 'none',
@@ -805,18 +795,18 @@ const EmployeeListPage: React.FC = () => {
                       boxSizing: 'border-box',
                       backgroundColor: 'white'
                     }}
-                    value={formData.position_id}
-                    onChange={e => handleInputChange('position_id', e.target.value)}
+                    value={formData.positionId}
+                    onChange={e => handleInputChange('positionId', e.target.value)}
                     onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={e => e.target.style.borderColor = formErrors.position_id ? '#ef4444' : '#d1d5db'}
+                    onBlur={e => e.target.style.borderColor = formErrors.positionId ? '#ef4444' : '#d1d5db'}
                   >
                     <option value="">役職を選択してください</option>
-                    {positions.map(pos => (
+                    {Array.isArray(positions) && positions.map(pos => (
                       <option key={pos.id} value={pos.id}>{pos.name}</option>
                     ))}
                   </select>
-                  {formErrors.position_id && (
-                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.position_id}</span>
+                  {formErrors.positionId && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.positionId}</span>
                   )}
                 </div>
 
@@ -843,15 +833,15 @@ const EmployeeListPage: React.FC = () => {
                       boxSizing: 'border-box',
                       backgroundColor: 'white'
                     }}
-                    value={formData.employment_type}
-                    onChange={e => handleInputChange('employment_type', e.target.value as NewEmployeeForm['employment_type'])}
+                    value={formData.employmentType}
+                    onChange={e => handleInputChange('employmentType', e.target.value as NewEmployeeForm['employmentType'])}
                     onFocus={e => e.target.style.borderColor = '#3b82f6'}
                     onBlur={e => e.target.style.borderColor = '#d1d5db'}
                   >
-                    <option value="FULL_TIME">正社員</option>
+                    <option value="REGULAR">正社員</option>
                     <option value="CONTRACT">契約社員</option>
-                    <option value="PART_TIME">パート</option>
-                    <option value="INTERN">インターン</option>
+                    <option value="TEMPORARY">派遣</option>
+                    <option value="PART_TIME">アルバイト</option>
                   </select>
                 </div>
 
@@ -871,20 +861,20 @@ const EmployeeListPage: React.FC = () => {
                     style={{
                       width: '100%',
                       padding: '8px 12px',
-                      border: `1px solid ${formErrors.hire_date ? '#ef4444' : '#d1d5db'}`,
+                      border: `1px solid ${formErrors.hireDate ? '#ef4444' : '#d1d5db'}`,
                       borderRadius: '6px',
                       fontSize: '14px',
                       outline: 'none',
                       transition: 'border-color 0.2s',
                       boxSizing: 'border-box'
                     }}
-                    value={formData.hire_date}
-                    onChange={e => handleInputChange('hire_date', e.target.value)}
+                    value={formData.hireDate}
+                    onChange={e => handleInputChange('hireDate', e.target.value)}
                     onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={e => e.target.style.borderColor = formErrors.hire_date ? '#ef4444' : '#d1d5db'}
+                    onBlur={e => e.target.style.borderColor = formErrors.hireDate ? '#ef4444' : '#d1d5db'}
                   />
-                  {formErrors.hire_date && (
-                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.hire_date}</span>
+                  {formErrors.hireDate && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.hireDate}</span>
                   )}
                 </div>
               </div>
@@ -909,8 +899,8 @@ const EmployeeListPage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
                   }}
-                  onMouseEnter={e => e.target.style.backgroundColor = '#f9fafb'}
-                  onMouseLeave={e => e.target.style.backgroundColor = 'white'}
+                  onMouseEnter={e => (e.target as HTMLElement).style.backgroundColor = '#f9fafb'}
+                  onMouseLeave={e => (e.target as HTMLElement).style.backgroundColor = 'white'}
                 >
                   キャンセル
                 </button>
@@ -929,10 +919,10 @@ const EmployeeListPage: React.FC = () => {
                     transition: 'background-color 0.2s'
                   }}
                   onMouseEnter={e => {
-                    if (!isSubmitting) e.target.style.backgroundColor = '#2563eb';
+                    if (!isSubmitting) (e.target as HTMLElement).style.backgroundColor = '#2563eb';
                   }}
                   onMouseLeave={e => {
-                    if (!isSubmitting) e.target.style.backgroundColor = '#3b82f6';
+                    if (!isSubmitting) (e.target as HTMLElement).style.backgroundColor = '#3b82f6';
                   }}
                 >
                   {isSubmitting ? 
@@ -942,6 +932,173 @@ const EmployeeListPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* 削除確認ダイアログ */}
+      {isDeleteDialogOpen && deletingEmployee && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '400px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}>
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#dc2626',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '24px' }}>⚠️</span>
+                削除確認
+              </h3>
+            </div>
+            
+            <div style={{ padding: '24px' }}>
+              <p style={{
+                margin: '0 0 16px 0',
+                color: '#374151',
+                lineHeight: 1.6
+              }}>
+                以下の社員を削除してもよろしいですか？
+              </p>
+              
+              <div style={{
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#6b7280'
+                  }}>
+                    {deletingEmployee.lastName[0]}
+                  </div>
+                  <div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      {deletingEmployee.lastName} {deletingEmployee.firstName}
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      {deletingEmployee.department.name} • {deletingEmployee.position.name}
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      {deletingEmployee.email}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <p style={{
+                margin: '0 0 24px 0',
+                color: '#dc2626',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                この操作は取り消せません。
+              </p>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px'
+              }}>
+                <button
+                  type="button"
+                  onClick={closeDeleteDialog}
+                  disabled={isDeleting}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s',
+                    opacity: isDeleting ? 0.5 : 1
+                  }}
+                  onMouseEnter={e => {
+                    if (!isDeleting) (e.target as HTMLElement).style.backgroundColor = '#f9fafb';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isDeleting) (e.target as HTMLElement).style.backgroundColor = 'white';
+                  }}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  style={{
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: isDeleting ? '#9ca3af' : '#dc2626',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={e => {
+                    if (!isDeleting) (e.target as HTMLElement).style.backgroundColor = '#b91c1c';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isDeleting) (e.target as HTMLElement).style.backgroundColor = '#dc2626';
+                  }}
+                >
+                  {isDeleting ? '削除中...' : '削除する'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -1021,7 +1178,7 @@ const EmployeeListPage: React.FC = () => {
                   fontWeight: '600',
                   color: '#6b7280'
                 }}>
-                  {detailEmployee.last_name[0]}
+                  {detailEmployee.lastName[0]}
                 </div>
                 <div>
                   <h3 style={{
@@ -1030,7 +1187,7 @@ const EmployeeListPage: React.FC = () => {
                     color: '#111827',
                     margin: '0 0 8px 0'
                   }}>
-                    {detailEmployee.last_name} {detailEmployee.first_name}
+                    {detailEmployee.lastName} {detailEmployee.firstName}
                   </h3>
                   <p style={{
                     fontSize: '16px',
@@ -1044,7 +1201,7 @@ const EmployeeListPage: React.FC = () => {
                     color: '#6b7280',
                     margin: 0
                   }}>
-                    社員ID: {detailEmployee.employee_id}
+                    社員ID: {detailEmployee.employeeId}
                   </p>
                 </div>
               </div>
@@ -1115,7 +1272,7 @@ const EmployeeListPage: React.FC = () => {
                         marginBottom: '4px'
                       }}>雇用形態</label>
                       <div style={{ padding: '8px 0' }}>
-                        <EmploymentTypeBadge type={detailEmployee.employment_type} />
+                        <EmploymentTypeBadge type={detailEmployee.employmentType} />
                       </div>
                     </div>
                   </div>
@@ -1184,7 +1341,7 @@ const EmployeeListPage: React.FC = () => {
                         color: '#111827',
                         margin: 0,
                         padding: '8px 0'
-                      }}>{detailEmployee.hire_date}</p>
+                      }}>{detailEmployee.hireDate}</p>
                     </div>
                   </div>
                 </div>
@@ -1221,7 +1378,7 @@ const EmployeeListPage: React.FC = () => {
                       color: '#111827',
                       margin: 0,
                       padding: '8px 0'
-                    }}>{new Date(detailEmployee.created_at).toLocaleString('ja-JP')}</p>
+                    }}>{new Date(detailEmployee.createdAt).toLocaleString('ja-JP')}</p>
                   </div>
                   
                   <div>
@@ -1239,7 +1396,7 @@ const EmployeeListPage: React.FC = () => {
                       color: '#111827',
                       margin: 0,
                       padding: '8px 0'
-                    }}>{new Date(detailEmployee.updated_at).toLocaleString('ja-JP')}</p>
+                    }}>{new Date(detailEmployee.updatedAt).toLocaleString('ja-JP')}</p>
                   </div>
                 </div>
               </div>
@@ -1265,8 +1422,8 @@ const EmployeeListPage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
                   }}
-                  onMouseEnter={e => e.target.style.backgroundColor = '#f9fafb'}
-                  onMouseLeave={e => e.target.style.backgroundColor = 'white'}
+                  onMouseEnter={e => (e.target as HTMLElement).style.backgroundColor = '#f9fafb'}
+                  onMouseLeave={e => (e.target as HTMLElement).style.backgroundColor = 'white'}
                 >
                   閉じる
                 </button>
@@ -1287,8 +1444,8 @@ const EmployeeListPage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'background-color 0.2s'
                   }}
-                  onMouseEnter={e => e.target.style.backgroundColor = '#2563eb'}
-                  onMouseLeave={e => e.target.style.backgroundColor = '#3b82f6'}
+                  onMouseEnter={e => (e.target as HTMLElement).style.backgroundColor = '#2563eb'}
+                  onMouseLeave={e => (e.target as HTMLElement).style.backgroundColor = '#3b82f6'}
                 >
                   編集する
                 </button>
@@ -1298,172 +1455,7 @@ const EmployeeListPage: React.FC = () => {
         </div>
       )}
 
-      {/* 削除確認ダイアログ */}
-      {isDeleteDialogOpen && deletingEmployee && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '8px',
-            width: '90%',
-            maxWidth: '400px',
-            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
-          }}>
-            <div style={{
-              padding: '24px',
-              borderBottom: '1px solid #e5e7eb'
-            }}>
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: '600',
-                color: '#dc2626',
-                margin: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <span style={{ fontSize: '24px' }}>⚠️</span>
-                削除確認
-              </h3>
-            </div>
-            
-            <div style={{ padding: '24px' }}>
-              <p style={{
-                margin: '0 0 16px 0',
-                color: '#374151',
-                lineHeight: 1.6
-              }}>
-                以下の社員を削除してもよろしいですか？
-              </p>
-              
-              <div style={{
-                backgroundColor: '#f9fafb',
-                border: '1px solid #e5e7eb',
-                borderRadius: '6px',
-                padding: '16px',
-                marginBottom: '16px'
-              }}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '12px'
-                }}>
-                  <div style={{
-                    width: '40px',
-                    height: '40px',
-                    borderRadius: '50%',
-                    backgroundColor: '#e5e7eb',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#6b7280'
-                  }}>
-                    {deletingEmployee.last_name[0]}
-                  </div>
-                  <div>
-                    <div style={{
-                      fontSize: '16px',
-                      fontWeight: '600',
-                      color: '#111827'
-                    }}>
-                      {deletingEmployee.last_name} {deletingEmployee.first_name}
-                    </div>
-                    <div style={{
-                      fontSize: '14px',
-                      color: '#6b7280'
-                    }}>
-                      {deletingEmployee.department.name} • {deletingEmployee.position.name}
-                    </div>
-                    <div style={{
-                      fontSize: '14px',
-                      color: '#6b7280'
-                    }}>
-                      {deletingEmployee.email}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              
-              <p style={{
-                margin: '0 0 24px 0',
-                color: '#dc2626',
-                fontSize: '14px',
-                fontWeight: '500'
-              }}>
-                この操作は取り消せません。
-              </p>
-              
-              <div style={{
-                display: 'flex',
-                justifyContent: 'flex-end',
-                gap: '12px'
-              }}>
-                <button
-                  type="button"
-                  onClick={closeDeleteDialog}
-                  disabled={isDeleting}
-                  style={{
-                    padding: '8px 16px',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '6px',
-                    backgroundColor: 'white',
-                    color: '#374151',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: isDeleting ? 'not-allowed' : 'pointer',
-                    transition: 'background-color 0.2s',
-                    opacity: isDeleting ? 0.5 : 1
-                  }}
-                  onMouseEnter={e => {
-                    if (!isDeleting) e.target.style.backgroundColor = '#f9fafb';
-                  }}
-                  onMouseLeave={e => {
-                    if (!isDeleting) e.target.style.backgroundColor = 'white';
-                  }}
-                >
-                  キャンセル
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={isDeleting}
-                  style={{
-                    padding: '8px 16px',
-                    border: 'none',
-                    borderRadius: '6px',
-                    backgroundColor: isDeleting ? '#9ca3af' : '#dc2626',
-                    color: 'white',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    cursor: isDeleting ? 'not-allowed' : 'pointer',
-                    transition: 'background-color 0.2s'
-                  }}
-                  onMouseEnter={e => {
-                    if (!isDeleting) e.target.style.backgroundColor = '#b91c1c';
-                  }}
-                  onMouseLeave={e => {
-                    if (!isDeleting) e.target.style.backgroundColor = '#dc2626';
-                  }}
-                >
-                  {isDeleting ? '削除中...' : '削除する'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* ローディング用スピナーのCSSアニメーション - moved to inline styles */}
     </Layout>
   );
 };

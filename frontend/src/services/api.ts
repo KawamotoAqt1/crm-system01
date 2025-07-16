@@ -1,7 +1,5 @@
 import { 
     ApiResponse, 
-    ApiError, 
-    PaginationData,
     LoginCredentials,
     User,
     AuthTokens,
@@ -47,9 +45,9 @@ import {
     ): Promise<T> {
       const url = `${this.baseURL}/api/v1${endpoint}`;
       
-      const headers: HeadersInit = {
+      const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        ...options.headers,
+        ...(options.headers as Record<string, string>),
       };
   
       if (this.accessToken) {

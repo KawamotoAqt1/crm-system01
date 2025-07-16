@@ -1,20 +1,70 @@
-// API Response Types
-export interface ApiResponse<T> {
+// バックエンドAPIレスポンス型定義（統一版）
+
+export interface Employee {
+    id: string;
+    employeeId: string;        // バックエンドに合わせて camelCase
+    firstName: string;         // バックエンドに合わせて camelCase
+    lastName: string;          // バックエンドに合わせて camelCase
+    email: string;
+    phone?: string;
+    department: {
+      id: string;
+      name: string;
+    };
+    position: {
+      id: string;
+      name: string;
+    };
+    employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME'; // バックエンドに統一
+    hireDate: string;          // バックエンドに合わせて camelCase
+    createdAt: string;         // バックエンドに合わせて camelCase
+    updatedAt: string;         // バックエンドに合わせて camelCase
+  }
+  
+  export interface Department {
+    id: string;
+    name: string;
+    description?: string;
+    employeeCount?: number;    // API レスポンスに含まれる場合
+  }
+  
+  export interface Position {
+    id: string;
+    name: string;
+    level?: number;
+    employeeCount?: number;    // API レスポンスに含まれる場合
+  }
+  
+  export interface NewEmployeeForm {
+    firstName: string;         // バックエンドに合わせて camelCase
+    lastName: string;          // バックエンドに合わせて camelCase
+    email: string;
+    phone: string;
+    departmentId: string;      // バックエンドに合わせて camelCase
+    positionId: string;        // バックエンドに合わせて camelCase
+    employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
+    hireDate: string;          // バックエンドに合わせて camelCase
+  }
+  
+  export interface UpdateEmployeeForm extends NewEmployeeForm {
+    id: string;
+  }
+  
+  // API data transfer types
+  export type CreateEmployeeData = NewEmployeeForm;
+  export type CreateDepartmentData = { name: string; description?: string; };
+  export type CreatePositionData = { name: string; level?: number; };
+  export type EmployeeSearchParams = EmployeeFilters;
+  
+  // API レスポンス型
+  export interface ApiResponse<T> {
     success: boolean;
     data: T;
     message?: string;
+    timestamp: string;
   }
   
-  export interface ApiError {
-    success: false;
-    error: {
-      code: string;
-      message: string;
-      details?: any;
-    };
-  }
-  
-  export interface PaginationData<T> {
+  export interface PaginatedResponse<T> {
     data: T[];
     pagination: {
       page: number;
@@ -22,12 +72,27 @@ export interface ApiResponse<T> {
       total: number;
       totalPages: number;
     };
+    message?: string;
+    timestamp: string;
   }
   
-  // User & Auth Types
+  // Alias for PaginatedResponse
+  export type PaginationData<T> = PaginatedResponse<T>;
+  
+  export interface ApiError {
+    error: string;
+    message: string;
+    details?: Array<{
+      field: string;
+      message: string;
+    }>;
+    timestamp: string;
+  }
+  
+  // 認証関連型
   export const UserRole = {
     ADMIN: 'ADMIN',
-    HR_MANAGER: 'HR_MANAGER',
+    HR_MANAGER: 'HR_MANAGER', 
     SALES_MANAGER: 'SALES_MANAGER',
     EMPLOYEE: 'EMPLOYEE'
   } as const;
@@ -36,10 +101,22 @@ export interface ApiResponse<T> {
   
   export interface User {
     id: string;
-    username: string;
+    email: string;
+    firstName: string;
+    lastName: string;
     role: UserRole;
-    lastLoginAt?: string;
-    employee: Employee;
+  }
+  
+  export interface LoginRequest {
+    email: string;
+    password: string;
+  }
+  
+  // LoginCredentials supports both email and username for flexibility
+  export interface LoginCredentials {
+    username?: string;
+    email: string;
+    password: string;
   }
   
   export interface AuthTokens {
@@ -47,154 +124,19 @@ export interface ApiResponse<T> {
     refreshToken: string;
   }
   
-  export interface LoginCredentials {
-    username: string;
-    password: string;
+  export interface LoginResponse {
+    user: User;
+    accessToken: string;
+    refreshToken: string;
   }
   
-  // Employee Types
-  export const EmploymentType = {
-    REGULAR: 'REGULAR',
-    CONTRACT: 'CONTRACT',
-    TEMPORARY: 'TEMPORARY',
-    PART_TIME: 'PART_TIME'
-  } as const;
-  
-  export type EmploymentType = typeof EmploymentType[keyof typeof EmploymentType];
-  
-  export interface Employee {
-    id: string;
-    employeeId: string;
-    firstName: string;
-    lastName: string;
-    firstNameKana?: string;
-    lastNameKana?: string;
-    email: string;
-    phone?: string;
-    departmentId: string;
-    positionId: string;
-    hireDate: string;
-    employmentType: EmploymentType;
-    birthDate?: string;
-    address?: string;
-    emergencyContact?: string;
-    education?: string;
-    workHistory?: string;
-    skills?: string;
-    photoUrl?: string;
-    notes?: string;
-    createdAt: string;
-    updatedAt: string;
-    deletedAt?: string;
-    
-    // Relations
-    department: Department;
-    position: Position;
-  }
-  
-  export interface CreateEmployeeData {
-    employeeId: string;
-    firstName: string;
-    lastName: string;
-    firstNameKana?: string;
-    lastNameKana?: string;
-    email: string;
-    phone?: string;
-    departmentId: string;
-    positionId: string;
-    hireDate: string;
-    employmentType: EmploymentType;
-    birthDate?: string;
-    address?: string;
-    emergencyContact?: string;
-    education?: string;
-    workHistory?: string;
-    skills?: string;
-    notes?: string;
-  }
-  
-  // Department Types
-  export interface Department {
-    id: string;
-    name: string;
-    description?: string;
-    createdAt: string;
-    updatedAt: string;
-    deletedAt?: string;
-    employeeCount?: number;
-  }
-  
-  export interface CreateDepartmentData {
-    name: string;
-    description?: string;
-  }
-  
-  // Position Types
-  export interface Position {
-    id: string;
-    name: string;
-    level: number;
-    description?: string;
-    createdAt: string;
-    updatedAt: string;
-    deletedAt?: string;
-    employeeCount?: number;
-  }
-  
-  export interface CreatePositionData {
-    name: string;
-    level: number;
-    description?: string;
-  }
-  
-  // Search & Filter Types
-  export interface EmployeeSearchParams {
-    page?: number;
-    limit?: number;
-    search?: string;
-    departmentId?: string;
-    positionId?: string;
-    employmentType?: EmploymentType;
-    sortBy?: 'firstName' | 'lastName' | 'hireDate' | 'employeeId';
-    sortOrder?: 'asc' | 'desc';
-  }
-  
-  // Form Types
-  export interface FormError {
-    field: string;
-    message: string;
-  }
-  
-  export interface FormState<T> {
-    data: T;
-    errors: FormError[];
-    isSubmitting: boolean;
-    isValid: boolean;
-  }
-  
-  // UI Component Types
-  export interface ButtonProps {
-    children: React.ReactNode;
-    onClick?: () => void;
-    type?: 'button' | 'submit' | 'reset';
-    variant?: 'primary' | 'secondary' | 'danger' | 'success';
-    size?: 'sm' | 'md' | 'lg';
-    disabled?: boolean;
-    loading?: boolean;
-    className?: string;
-  }
-  
-  export interface InputProps {
-    name: string;
-    label?: string;
-    type?: 'text' | 'email' | 'password' | 'tel' | 'date' | 'textarea';
-    value: string;
-    onChange: (value: string) => void;
-    placeholder?: string;
-    required?: boolean;
-    disabled?: boolean;
-    error?: string;
-    className?: string;
+  // UI関連型
+  export interface SidebarItem {
+    key: string;
+    label: string;
+    path: string;
+    icon?: React.ReactNode;
+    requiredRole?: UserRole | UserRole[];
   }
   
   export interface SelectOption {
@@ -203,72 +145,67 @@ export interface ApiResponse<T> {
   }
   
   export interface SelectProps {
-    name: string;
+    name?: string;
     label?: string;
     value: string;
     onChange: (value: string) => void;
     options: SelectOption[];
     placeholder?: string;
-    required?: boolean;
-    disabled?: boolean;
     error?: string;
     className?: string;
+    required?: boolean;
+    disabled?: boolean;
   }
   
-  // Table Types
-  export interface TableColumn<T> {
-    key: keyof T | string;
-    header: string;
-    render?: (value: any, item: T) => React.ReactNode;
-    sortable?: boolean;
-    width?: string;
+  // フィルタリング・検索用型
+  export interface EmployeeFilters {
+    search?: string;
+    departmentId?: string;
+    positionId?: string;
+    employmentType?: Employee['employmentType'];
+    page?: number;
+    limit?: number;
   }
   
-  export interface TableProps<T> {
-    data: T[];
-    columns: TableColumn<T>[];
-    onSort?: (column: keyof T | string, direction: 'asc' | 'desc') => void;
-    onRowClick?: (item: T) => void;
-    loading?: boolean;
-    emptyMessage?: string;
-  }
+  // 雇用形態設定（バックエンドに統一）
+  export const EMPLOYMENT_TYPE_CONFIG = {
+    REGULAR: { label: '正社員', className: 'status-badge status-active' },
+    CONTRACT: { label: '契約社員', className: 'status-badge status-pending' },
+    TEMPORARY: { label: '派遣', className: 'status-badge status-warning' },
+    PART_TIME: { label: 'アルバイト', className: 'status-badge status-pending' }
+  } as const;
   
-  // Modal Types
-  export interface ModalProps {
-    isOpen: boolean;
-    onClose: () => void;
-    title?: string;
-    children: React.ReactNode;
-    size?: 'sm' | 'md' | 'lg' | 'xl';
-    closable?: boolean;
-  }
-  
-  // Layout Types
-  export interface SidebarItem {
-    key: string;
-    label: string;
-    icon?: React.ReactNode;
-    path: string;
-    children?: SidebarItem[];
-    requiredRole?: UserRole[];
-  }
-  
-  // Hook Types
-  export interface UseApiState<T> {
-    data: T | null;
-    loading: boolean;
-    error: string | null;
-    refetch: () => Promise<void>;
-  }
-  
-  export interface UseFormState<T> {
-    values: T;
-    errors: Record<keyof T, string>;
-    touched: Record<keyof T, boolean>;
-    isSubmitting: boolean;
-    isValid: boolean;
-    setValue: (field: keyof T, value: any) => void;
-    setError: (field: keyof T, error: string) => void;
-    reset: () => void;
-    handleSubmit: (onSubmit: (values: T) => Promise<void>) => (e: React.FormEvent) => void;
-  }
+  // API エンドポイント定数
+  export const API_ENDPOINTS = {
+    // 認証
+    AUTH: {
+      LOGIN: '/api/auth/login',
+      LOGOUT: '/api/auth/logout',
+      REFRESH: '/api/auth/refresh',
+      ME: '/api/auth/me'
+    },
+    // 社員管理
+    EMPLOYEES: {
+      LIST: '/api/employees',
+      CREATE: '/api/employees',
+      GET: (id: string) => `/api/employees/${id}`,
+      UPDATE: (id: string) => `/api/employees/${id}`,
+      DELETE: (id: string) => `/api/employees/${id}`
+    },
+    // 部署管理
+    DEPARTMENTS: {
+      LIST: '/api/departments',
+      CREATE: '/api/departments',
+      GET: (id: string) => `/api/departments/${id}`,
+      UPDATE: (id: string) => `/api/departments/${id}`,
+      DELETE: (id: string) => `/api/departments/${id}`
+    },
+    // 役職管理
+    POSITIONS: {
+      LIST: '/api/positions',
+      CREATE: '/api/positions',
+      GET: (id: string) => `/api/positions/${id}`,
+      UPDATE: (id: string) => `/api/positions/${id}`,
+      DELETE: (id: string) => `/api/positions/${id}`
+    }
+  } as const;

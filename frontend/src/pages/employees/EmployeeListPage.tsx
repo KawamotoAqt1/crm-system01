@@ -33,6 +33,17 @@ interface Position {
   name: string;
 }
 
+interface NewEmployeeForm {
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string;
+  department_id: string;
+  position_id: string;
+  employment_type: 'FULL_TIME' | 'CONTRACT' | 'PART_TIME' | 'INTERN';
+  hire_date: string;
+}
+
 const EMPLOYMENT_TYPE_CONFIG = {
   FULL_TIME: { label: '正社員', className: 'status-badge status-active' },
   CONTRACT: { label: '契約社員', className: 'status-badge status-pending' },
@@ -139,6 +150,32 @@ const EmployeeListPage: React.FC = () => {
   const [selectedPosition, setSelectedPosition] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
+  
+  // モーダル関連のstate
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
+  const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
+  const [formData, setFormData] = useState<NewEmployeeForm>({
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    department_id: '',
+    position_id: '',
+    employment_type: 'FULL_TIME',
+    hire_date: ''
+  });
+  const [formErrors, setFormErrors] = useState<Partial<NewEmployeeForm>>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // 削除確認ダイアログ関連のstate
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [deletingEmployee, setDeletingEmployee] = useState<Employee | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // 詳細表示モーダル関連のstate
+  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [detailEmployee, setDetailEmployee] = useState<Employee | null>(null);
 
   useEffect(() => {
     setEmployees(MOCK_EMPLOYEES);
@@ -169,6 +206,217 @@ const EmployeeListPage: React.FC = () => {
   const endIndex = startIndex + itemsPerPage;
   const currentEmployees = filteredEmployees.slice(startIndex, endIndex);
 
+  // フォーム関連の関数
+  const validateForm = (): boolean => {
+    const errors: Partial<NewEmployeeForm> = {};
+    
+    if (!formData.first_name.trim()) {
+      errors.first_name = '名前を入力してください';
+    }
+    if (!formData.last_name.trim()) {
+      errors.last_name = '姓を入力してください';
+    }
+    if (!formData.email.trim()) {
+      errors.email = 'メールアドレスを入力してください';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      errors.email = '有効なメールアドレスを入力してください';
+    } else {
+      // 編集モードの場合は、編集中の社員以外でメール重複をチェック
+      const existingEmployee = employees.find(emp => emp.email === formData.email);
+      if (existingEmployee && (!editingEmployee || existingEmployee.id !== editingEmployee.id)) {
+        errors.email = 'このメールアドレスは既に使用されています';
+      }
+    }
+    if (!formData.department_id) {
+      errors.department_id = '部署を選択してください';
+    }
+    if (!formData.position_id) {
+      errors.position_id = '役職を選択してください';
+    }
+    if (!formData.hire_date) {
+      errors.hire_date = '入社日を入力してください';
+    }
+
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleInputChange = (field: keyof NewEmployeeForm, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+    // エラーをクリア
+    if (formErrors[field]) {
+      setFormErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      if (modalMode === 'create') {
+        // 新規登録処理
+        const newEmployeeId = `EMP${String(employees.length + 1).padStart(3, '0')}`;
+        
+        const department = departments.find(d => d.id === formData.department_id);
+        const position = positions.find(p => p.id === formData.position_id);
+        
+        const newEmployee: Employee = {
+          id: Date.now().toString(),
+          employee_id: newEmployeeId,
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          department: department!,
+          position: position!,
+          employment_type: formData.employment_type,
+          hire_date: formData.hire_date,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setEmployees(prev => [...prev, newEmployee]);
+        alert('社員を正常に登録しました');
+        
+      } else {
+        // 編集処理
+        const department = departments.find(d => d.id === formData.department_id);
+        const position = positions.find(p => p.id === formData.position_id);
+        
+        const updatedEmployee: Employee = {
+          ...editingEmployee!,
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim(),
+          department: department!,
+          position: position!,
+          employment_type: formData.employment_type,
+          hire_date: formData.hire_date,
+          updated_at: new Date().toISOString()
+        };
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        setEmployees(prev => prev.map(emp => 
+          emp.id === editingEmployee!.id ? updatedEmployee : emp
+        ));
+        alert('社員情報を正常に更新しました');
+      }
+      
+      closeModal();
+      
+    } catch (error) {
+      console.error('処理エラー:', error);
+      alert(modalMode === 'create' ? '社員登録に失敗しました' : '社員情報の更新に失敗しました');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const openCreateModal = () => {
+    setModalMode('create');
+    setEditingEmployee(null);
+    setFormData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      department_id: '',
+      position_id: '',
+      employment_type: 'FULL_TIME',
+      hire_date: ''
+    });
+    setFormErrors({});
+    setIsModalOpen(true);
+  };
+
+  const openEditModal = (employee: Employee) => {
+    setModalMode('edit');
+    setEditingEmployee(employee);
+    setFormData({
+      first_name: employee.first_name,
+      last_name: employee.last_name,
+      email: employee.email,
+      phone: employee.phone || '',
+      department_id: employee.department.id,
+      position_id: employee.position.id,
+      employment_type: employee.employment_type,
+      hire_date: employee.hire_date
+    });
+    setFormErrors({});
+    setIsModalOpen(true);
+  };
+
+  const openDeleteDialog = (employee: Employee) => {
+    setDeletingEmployee(employee);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const closeDeleteDialog = () => {
+    setIsDeleteDialogOpen(false);
+    setDeletingEmployee(null);
+  };
+
+  const handleDelete = async () => {
+    if (!deletingEmployee) return;
+    
+    setIsDeleting(true);
+    
+    try {
+      // モック：実際のAPIコールをシミュレート
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // 社員リストから削除
+      setEmployees(prev => prev.filter(emp => emp.id !== deletingEmployee.id));
+      
+      // 成功メッセージ
+      alert(`${deletingEmployee.last_name} ${deletingEmployee.first_name}さんを削除しました`);
+      
+      // ダイアログを閉じる
+      closeDeleteDialog();
+      
+    } catch (error) {
+      console.error('削除エラー:', error);
+      alert('社員の削除に失敗しました');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const openDetailModal = (employee: Employee) => {
+    setDetailEmployee(employee);
+    setIsDetailModalOpen(true);
+  };
+
+  const closeDetailModal = () => {
+    setIsDetailModalOpen(false);
+    setDetailEmployee(null);
+  };
+
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setModalMode('create');
+    setEditingEmployee(null);
+    setFormData({
+      first_name: '',
+      last_name: '',
+      email: '',
+      phone: '',
+      department_id: '',
+      position_id: '',
+      employment_type: 'FULL_TIME',
+      hire_date: ''
+    });
+    setFormErrors({});
+  };
+
   // UIコンポーネント
   const EmploymentTypeBadge: React.FC<{ type: Employee['employment_type'] }> = ({ type }) => {
     const config = EMPLOYMENT_TYPE_CONFIG[type];
@@ -182,7 +430,7 @@ const EmployeeListPage: React.FC = () => {
           <h1 className="content-title">社員管理</h1>
           <p className="content-subtitle">社員情報の閲覧・編集・管理を行います</p>
         </div>
-        <button className="add-btn">
+        <button className="add-btn" onClick={openCreateModal}>
           <span>+</span>
           <span>新規登録</span>
         </button>
@@ -248,9 +496,36 @@ const EmployeeListPage: React.FC = () => {
                 <td>{emp.hire_date}</td>
                 <td>
                   <div className="action-links">
-                    <a href="#" className="action-link">詳細</a>
-                    <a href="#" className="action-link edit">編集</a>
-                    <a href="#" className="action-link delete">削除</a>
+                    <a 
+                      href="#" 
+                      className="action-link"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openDetailModal(emp);
+                      }}
+                    >
+                      詳細
+                    </a>
+                    <a 
+                      href="#" 
+                      className="action-link edit"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openEditModal(emp);
+                      }}
+                    >
+                      編集
+                    </a>
+                    <a 
+                      href="#" 
+                      className="action-link delete"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        openDeleteDialog(emp);
+                      }}
+                    >
+                      削除
+                    </a>
                   </div>
                 </td>
               </tr>
@@ -279,6 +554,916 @@ const EmployeeListPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 新規登録モーダル */}
+      {isModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}>
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>
+                {modalMode === 'create' ? '新規社員登録' : '社員情報編集'}
+              </h2>
+              <button 
+                type="button"
+                onClick={closeModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  padding: '4px',
+                  lineHeight: 1
+                }}
+              >×</button>
+            </div>
+            
+            <form onSubmit={handleSubmit} style={{ padding: '24px' }}>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '16px'
+              }}>
+                {/* 姓・名 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    姓 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${formErrors.last_name ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.last_name}
+                    onChange={e => handleInputChange('last_name', e.target.value)}
+                    placeholder="田中"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = formErrors.last_name ? '#ef4444' : '#d1d5db'}
+                  />
+                  {formErrors.last_name && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.last_name}</span>
+                  )}
+                </div>
+
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    名 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="text"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${formErrors.first_name ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.first_name}
+                    onChange={e => handleInputChange('first_name', e.target.value)}
+                    placeholder="太郎"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = formErrors.first_name ? '#ef4444' : '#d1d5db'}
+                  />
+                  {formErrors.first_name && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.first_name}</span>
+                  )}
+                </div>
+
+                {/* メールアドレス */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    メールアドレス <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="email"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${formErrors.email ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.email}
+                    onChange={e => handleInputChange('email', e.target.value)}
+                    placeholder="tanaka@company.com"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = formErrors.email ? '#ef4444' : '#d1d5db'}
+                  />
+                  {formErrors.email && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.email}</span>
+                  )}
+                </div>
+
+                {/* 電話番号 */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>電話番号</label>
+                  <input
+                    type="tel"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.phone}
+                    onChange={e => handleInputChange('phone', e.target.value)}
+                    placeholder="090-1234-5678"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 部署 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    部署 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${formErrors.department_id ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      backgroundColor: 'white'
+                    }}
+                    value={formData.department_id}
+                    onChange={e => handleInputChange('department_id', e.target.value)}
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = formErrors.department_id ? '#ef4444' : '#d1d5db'}
+                  >
+                    <option value="">部署を選択してください</option>
+                    {departments.map(dept => (
+                      <option key={dept.id} value={dept.id}>{dept.name}</option>
+                    ))}
+                  </select>
+                  {formErrors.department_id && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.department_id}</span>
+                  )}
+                </div>
+
+                {/* 役職 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    役職 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${formErrors.position_id ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      backgroundColor: 'white'
+                    }}
+                    value={formData.position_id}
+                    onChange={e => handleInputChange('position_id', e.target.value)}
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = formErrors.position_id ? '#ef4444' : '#d1d5db'}
+                  >
+                    <option value="">役職を選択してください</option>
+                    {positions.map(pos => (
+                      <option key={pos.id} value={pos.id}>{pos.name}</option>
+                    ))}
+                  </select>
+                  {formErrors.position_id && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.position_id}</span>
+                  )}
+                </div>
+
+                {/* 雇用形態 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    雇用形態 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      backgroundColor: 'white'
+                    }}
+                    value={formData.employment_type}
+                    onChange={e => handleInputChange('employment_type', e.target.value as NewEmployeeForm['employment_type'])}
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  >
+                    <option value="FULL_TIME">正社員</option>
+                    <option value="CONTRACT">契約社員</option>
+                    <option value="PART_TIME">パート</option>
+                    <option value="INTERN">インターン</option>
+                  </select>
+                </div>
+
+                {/* 入社日 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    入社日 <span style={{ color: '#ef4444' }}>*</span>
+                  </label>
+                  <input
+                    type="date"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: `1px solid ${formErrors.hire_date ? '#ef4444' : '#d1d5db'}`,
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.hire_date}
+                    onChange={e => handleInputChange('hire_date', e.target.value)}
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = formErrors.hire_date ? '#ef4444' : '#d1d5db'}
+                  />
+                  {formErrors.hire_date && (
+                    <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.hire_date}</span>
+                  )}
+                </div>
+              </div>
+
+              <div style={{
+                marginTop: '24px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px'
+              }}>
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={e => e.target.style.backgroundColor = '#f9fafb'}
+                  onMouseLeave={e => e.target.style.backgroundColor = 'white'}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  style={{
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: isSubmitting ? '#9ca3af' : '#3b82f6',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: isSubmitting ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={e => {
+                    if (!isSubmitting) e.target.style.backgroundColor = '#2563eb';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isSubmitting) e.target.style.backgroundColor = '#3b82f6';
+                  }}
+                >
+                  {isSubmitting ? 
+                    (modalMode === 'create' ? '登録中...' : '更新中...') : 
+                    (modalMode === 'create' ? '登録' : '更新')
+                  }
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* 社員詳細表示モーダル */}
+      {isDetailModalOpen && detailEmployee && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '600px',
+            maxHeight: '90vh',
+            overflow: 'auto',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}>
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e5e7eb',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <h2 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#111827',
+                margin: 0
+              }}>社員詳細情報</h2>
+              <button 
+                type="button"
+                onClick={closeDetailModal}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  fontSize: '24px',
+                  cursor: 'pointer',
+                  color: '#6b7280',
+                  padding: '4px',
+                  lineHeight: 1
+                }}
+              >×</button>
+            </div>
+            
+            <div style={{ padding: '24px' }}>
+              {/* プロフィール部分 */}
+              <div style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '16px',
+                marginBottom: '24px',
+                padding: '20px',
+                backgroundColor: '#f9fafb',
+                borderRadius: '8px',
+                border: '1px solid #e5e7eb'
+              }}>
+                <div style={{
+                  width: '80px',
+                  height: '80px',
+                  borderRadius: '50%',
+                  backgroundColor: '#e5e7eb',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '32px',
+                  fontWeight: '600',
+                  color: '#6b7280'
+                }}>
+                  {detailEmployee.last_name[0]}
+                </div>
+                <div>
+                  <h3 style={{
+                    fontSize: '24px',
+                    fontWeight: '700',
+                    color: '#111827',
+                    margin: '0 0 8px 0'
+                  }}>
+                    {detailEmployee.last_name} {detailEmployee.first_name}
+                  </h3>
+                  <p style={{
+                    fontSize: '16px',
+                    color: '#6b7280',
+                    margin: '0 0 4px 0'
+                  }}>
+                    {detailEmployee.department.name} • {detailEmployee.position.name}
+                  </p>
+                  <p style={{
+                    fontSize: '14px',
+                    color: '#6b7280',
+                    margin: 0
+                  }}>
+                    社員ID: {detailEmployee.employee_id}
+                  </p>
+                </div>
+              </div>
+
+              {/* 詳細情報 */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: '1fr 1fr',
+                gap: '24px'
+              }}>
+                {/* 基本情報 */}
+                <div>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827',
+                    margin: '0 0 16px 0',
+                    paddingBottom: '8px',
+                    borderBottom: '2px solid #e5e7eb'
+                  }}>基本情報</h4>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>メールアドレス</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0',
+                        wordBreak: 'break-all'
+                      }}>{detailEmployee.email}</p>
+                    </div>
+                    
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>電話番号</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0'
+                      }}>{detailEmployee.phone || '未登録'}</p>
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>雇用形態</label>
+                      <div style={{ padding: '8px 0' }}>
+                        <EmploymentTypeBadge type={detailEmployee.employment_type} />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 組織情報 */}
+                <div>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827',
+                    margin: '0 0 16px 0',
+                    paddingBottom: '8px',
+                    borderBottom: '2px solid #e5e7eb'
+                  }}>組織情報</h4>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>部署</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0'
+                      }}>{detailEmployee.department.name}</p>
+                    </div>
+                    
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>役職</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0'
+                      }}>{detailEmployee.position.name}</p>
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>入社日</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0'
+                      }}>{detailEmployee.hire_date}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* システム情報 */}
+              <div style={{ marginTop: '24px' }}>
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: '0 0 16px 0',
+                  paddingBottom: '8px',
+                  borderBottom: '2px solid #e5e7eb'
+                }}>システム情報</h4>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '16px'
+                }}>
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      marginBottom: '4px'
+                    }}>登録日時</label>
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#111827',
+                      margin: 0,
+                      padding: '8px 0'
+                    }}>{new Date(detailEmployee.created_at).toLocaleString('ja-JP')}</p>
+                  </div>
+                  
+                  <div>
+                    <label style={{
+                      display: 'block',
+                      fontSize: '12px',
+                      fontWeight: '500',
+                      color: '#6b7280',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.05em',
+                      marginBottom: '4px'
+                    }}>最終更新</label>
+                    <p style={{
+                      fontSize: '14px',
+                      color: '#111827',
+                      margin: 0,
+                      padding: '8px 0'
+                    }}>{new Date(detailEmployee.updated_at).toLocaleString('ja-JP')}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* アクションボタン */}
+              <div style={{
+                marginTop: '32px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px'
+              }}>
+                <button
+                  type="button"
+                  onClick={closeDetailModal}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={e => e.target.style.backgroundColor = '#f9fafb'}
+                  onMouseLeave={e => e.target.style.backgroundColor = 'white'}
+                >
+                  閉じる
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    closeDetailModal();
+                    openEditModal(detailEmployee);
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: '#3b82f6',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={e => e.target.style.backgroundColor = '#2563eb'}
+                  onMouseLeave={e => e.target.style.backgroundColor = '#3b82f6'}
+                >
+                  編集する
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 削除確認ダイアログ */}
+      {isDeleteDialogOpen && deletingEmployee && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            width: '90%',
+            maxWidth: '400px',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+          }}>
+            <div style={{
+              padding: '24px',
+              borderBottom: '1px solid #e5e7eb'
+            }}>
+              <h3 style={{
+                fontSize: '18px',
+                fontWeight: '600',
+                color: '#dc2626',
+                margin: 0,
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}>
+                <span style={{ fontSize: '24px' }}>⚠️</span>
+                削除確認
+              </h3>
+            </div>
+            
+            <div style={{ padding: '24px' }}>
+              <p style={{
+                margin: '0 0 16px 0',
+                color: '#374151',
+                lineHeight: 1.6
+              }}>
+                以下の社員を削除してもよろしいですか？
+              </p>
+              
+              <div style={{
+                backgroundColor: '#f9fafb',
+                border: '1px solid #e5e7eb',
+                borderRadius: '6px',
+                padding: '16px',
+                marginBottom: '16px'
+              }}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px'
+                }}>
+                  <div style={{
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    backgroundColor: '#e5e7eb',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#6b7280'
+                  }}>
+                    {deletingEmployee.last_name[0]}
+                  </div>
+                  <div>
+                    <div style={{
+                      fontSize: '16px',
+                      fontWeight: '600',
+                      color: '#111827'
+                    }}>
+                      {deletingEmployee.last_name} {deletingEmployee.first_name}
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      {deletingEmployee.department.name} • {deletingEmployee.position.name}
+                    </div>
+                    <div style={{
+                      fontSize: '14px',
+                      color: '#6b7280'
+                    }}>
+                      {deletingEmployee.email}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <p style={{
+                margin: '0 0 24px 0',
+                color: '#dc2626',
+                fontSize: '14px',
+                fontWeight: '500'
+              }}>
+                この操作は取り消せません。
+              </p>
+              
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '12px'
+              }}>
+                <button
+                  type="button"
+                  onClick={closeDeleteDialog}
+                  disabled={isDeleting}
+                  style={{
+                    padding: '8px 16px',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '6px',
+                    backgroundColor: 'white',
+                    color: '#374151',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s',
+                    opacity: isDeleting ? 0.5 : 1
+                  }}
+                  onMouseEnter={e => {
+                    if (!isDeleting) e.target.style.backgroundColor = '#f9fafb';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isDeleting) e.target.style.backgroundColor = 'white';
+                  }}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={isDeleting}
+                  style={{
+                    padding: '8px 16px',
+                    border: 'none',
+                    borderRadius: '6px',
+                    backgroundColor: isDeleting ? '#9ca3af' : '#dc2626',
+                    color: 'white',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    cursor: isDeleting ? 'not-allowed' : 'pointer',
+                    transition: 'background-color 0.2s'
+                  }}
+                  onMouseEnter={e => {
+                    if (!isDeleting) e.target.style.backgroundColor = '#b91c1c';
+                  }}
+                  onMouseLeave={e => {
+                    if (!isDeleting) e.target.style.backgroundColor = '#dc2626';
+                  }}
+                >
+                  {isDeleting ? '削除中...' : '削除する'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Layout>
   );
 };

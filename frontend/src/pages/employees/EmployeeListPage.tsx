@@ -54,10 +54,13 @@ const EmployeeListPage: React.FC = () => {
       setLoading(true);
       setError(null);
       
+      console.log('🔍 データ取得開始...');
+      console.log('APIサービス:', typeof apiService, !!apiService.getEmployees);
+      
       // APIサービスが利用できるかチェック
       if (typeof apiService === 'undefined' || !apiService.getEmployees) {
         // フォールバック：モックデータを使用
-        console.warn('APIサービスが利用できません。モックデータを使用します。');
+        console.warn('⚠️ APIサービスが利用できません。モックデータを使用します。');
         
         const mockEmployees = [
           {
@@ -113,6 +116,8 @@ const EmployeeListPage: React.FC = () => {
         return;
       }
       
+      console.log('🌐 実際のAPIを呼び出し中...');
+      
       // 並列でデータを取得
       const [employeesData, departmentsData, positionsData] = await Promise.all([
         apiService.getEmployees(),
@@ -120,14 +125,67 @@ const EmployeeListPage: React.FC = () => {
         apiService.getPositions()
       ]);
 
+      console.log('✅ API応答受信:', { employeesData, departmentsData, positionsData });
+
       setEmployees(Array.isArray(employeesData?.data) ? employeesData.data : []);
       setFilteredEmployees(Array.isArray(employeesData?.data) ? employeesData.data : []);
       setDepartments(Array.isArray(departmentsData?.data) ? departmentsData.data : []);
       setPositions(Array.isArray(positionsData?.data) ? positionsData.data : []);
       
     } catch (err) {
-      console.error('データ取得エラー:', err);
-      setError('データの取得に失敗しました。ページを再読み込みしてください。');
+      console.error('❌ データ取得エラー:', err);
+      console.log('🔄 モックデータフォールバックに切り替え中...');
+      
+      // エラー時にもモックデータを使用
+      const mockEmployees = [
+        {
+          id: '1',
+          employeeId: 'EMP001',
+          firstName: '太郎',
+          lastName: '田中',
+          email: 'tanaka@company.com',
+          phone: '090-1234-5678',
+          department: { id: '1', name: '総務部' },
+          position: { id: '1', name: '代表取締役' },
+          employmentType: 'REGULAR' as const,
+          hireDate: '2020-04-01',
+          createdAt: '2020-04-01T00:00:00Z',
+          updatedAt: '2020-04-01T00:00:00Z'
+        },
+        {
+          id: '2',
+          employeeId: 'EMP002',
+          firstName: '花子',
+          lastName: '佐藤',
+          email: 'sato@company.com',
+          phone: '090-2345-6789',
+          department: { id: '2', name: '営業部' },
+          position: { id: '2', name: '部長' },
+          employmentType: 'REGULAR' as const,
+          hireDate: '2021-04-01',
+          createdAt: '2021-04-01T00:00:00Z',
+          updatedAt: '2021-04-01T00:00:00Z'
+        }
+      ];
+      
+      const mockDepartments = [
+        { id: '1', name: '総務部' },
+        { id: '2', name: '営業部' },
+        { id: '3', name: '開発部' }
+      ];
+      
+      const mockPositions = [
+        { id: '1', name: '代表取締役' },
+        { id: '2', name: '部長' },
+        { id: '3', name: '課長' }
+      ];
+      
+      setEmployees(mockEmployees);
+      setFilteredEmployees(mockEmployees);
+      setDepartments(mockDepartments);
+      setPositions(mockPositions);
+      
+      setError('API接続に失敗しました。モックデータを表示しています。');
     } finally {
       setLoading(false);
     }

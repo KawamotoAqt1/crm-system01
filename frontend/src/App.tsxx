@@ -1,0 +1,59 @@
+// frontend/src/App.tsx - 部署管理ルート追加
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import ProtectedRoute from './components/auth/ProtectedRoute';
+import Layout from './components/layout/Layout';
+import LoginPage from './pages/auth/LoginPage';
+import DashboardPage from './pages/DashboardPage';
+import EmployeeListPage from './pages/employees/EmployeeListPage';
+import DepartmentListPage from './pages/departments/DepartmentListPage'; // 新規追加
+import './App.css';
+
+const App: React.FC = () => {
+  return (
+    <AuthProvider>
+      <Router>
+        <Routes>
+          {/* 認証が不要なルート */}
+          <Route path="/login" element={<LoginPage />} />
+          
+          {/* 認証が必要なルート */}
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }>
+            {/* ダッシュボード */}
+            <Route index element={<Navigate to="/dashboard" replace />} />
+            <Route path="dashboard" element={<DashboardPage />} />
+            
+            {/* 社員管理 */}
+            <Route path="employees" element={<EmployeeListPage />} />
+            
+            {/* 部署管理 - 新規追加 */}
+            <Route path="departments" element={<DepartmentListPage />} />
+            
+            {/* 将来の拡張用ルート */}
+            <Route path="positions" element={<div className="p-8 text-center text-gray-500">役職管理（実装予定）</div>} />
+            <Route path="projects" element={<div className="p-8 text-center text-gray-500">案件管理（実装予定）</div>} />
+            <Route path="customers" element={<div className="p-8 text-center text-gray-500">顧客管理（実装予定）</div>} />
+            
+            {/* 404ページ */}
+            <Route path="*" element={
+              <div className="p-8 text-center">
+                <h2 className="text-2xl font-bold text-gray-900 mb-2">ページが見つかりません</h2>
+                <p className="text-gray-600">指定されたページは存在しません。</p>
+              </div>
+            } />
+          </Route>
+          
+          {/* ルートアクセス時のリダイレクト */}
+          <Route path="*" element={<Navigate to="/login" replace />} />
+        </Routes>
+      </Router>
+    </AuthProvider>
+  );
+};
+
+export default App;

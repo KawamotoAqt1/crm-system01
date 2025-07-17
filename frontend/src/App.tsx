@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { LoginPage } from './pages/auth/LoginPage';    
 import { useAuthContext } from './contexts/AuthContext';
 import EmployeeListPage from './pages/employees/EmployeeListPage';
+import DepartmentListPage from './pages/departments/DepartmentListPage';
 import Layout from './components/layout/Layout';
 import './App.css';
 
@@ -39,40 +40,21 @@ const DashboardPage: React.FC = () => {
       
       <div className="table-container p-6">
         <p className="text-gray-600 mb-2">
-          🎉 <strong>社員一覧画面が実装完了しました！</strong>
+          🎉 <strong>部署管理システムが実装完了しました！</strong>
         </p>
         <p className="text-sm text-gray-500 mb-4">
-          サイドバーの「社員管理」から新しい社員一覧画面をご確認ください。
+          サイドバーの「部署管理」から新しい部署管理画面をご確認ください。
         </p>
         <div className="p-4 bg-gray-50 rounded-lg">
           <h4 className="text-sm font-medium text-gray-800 mb-2">✅ 完成した機能：</h4>
           <ul className="text-sm text-gray-700 space-y-1">
-            <li>• 社員データ表示（デスクトップ・モバイル対応）</li>
-            <li>• 検索機能（名前・メール対応）</li>
-            <li>• 部署・役職フィルタリング</li>
-            <li>• ページネーション</li>
+            <li>• 社員管理システム（完全動作）</li>
+            <li>• 部署管理システム（本日完成）</li>
+            <li>• 統合ナビゲーション</li>
             <li>• レスポンシブデザイン</li>
+            <li>• 検索・フィルタリング機能</li>
           </ul>
         </div>
-      </div>
-    </Layout>
-  );
-};
-
-// 部署管理コンポーネント（プレースホルダー）
-const DepartmentsPage: React.FC = () => {
-  return (
-    <Layout>
-      <div className="content-header">
-        <div>
-          <h1 className="content-title">部署管理</h1>
-          <p className="content-subtitle">部署情報の閲覧・編集・管理を行います</p>
-        </div>
-      </div>
-      
-      <div className="table-container p-6">
-        <p className="text-gray-800 mb-2">📂 部署管理機能を実装予定</p>
-        <p className="text-sm text-gray-600">社員一覧完成後に実装します</p>
       </div>
     </Layout>
   );
@@ -91,7 +73,7 @@ const PositionsPage: React.FC = () => {
       
       <div className="table-container p-6">
         <p className="text-gray-800 mb-2">👔 役職管理機能を実装予定</p>
-        <p className="text-sm text-gray-600">社員一覧完成後に実装します</p>
+        <p className="text-sm text-gray-600">部署管理完成後に実装します（Day 2予定）</p>
       </div>
     </Layout>
   );
@@ -121,7 +103,8 @@ const AuthenticatedRoutes: React.FC = () => {
     <Routes>
       <Route path="/dashboard" element={<DashboardPage />} />
       <Route path="/employees" element={<EmployeeListPage />} />
-      <Route path="/departments" element={<DepartmentsPage />} />
+      {/* 部署管理ルート - Layout重複を解消 */}
+      <Route path="/departments" element={<DepartmentListPage />} />
       <Route path="/positions" element={<PositionsPage />} />
       <Route path="/" element={<Navigate to="/dashboard" />} />
       <Route path="*" element={<Navigate to="/dashboard" />} />

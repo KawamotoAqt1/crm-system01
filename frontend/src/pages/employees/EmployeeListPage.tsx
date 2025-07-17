@@ -23,6 +23,7 @@ const EmployeeListPage: React.FC = () => {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
   const [formData, setFormData] = useState<NewEmployeeForm>({
+    employeeId: '',
     firstName: '',
     lastName: '',
     email: '',
@@ -94,19 +95,19 @@ const EmployeeListPage: React.FC = () => {
         ];
         
         const mockDepartments = [
-          { id: '1', name: '総務部' },
-          { id: '2', name: '営業部' },
-          { id: '3', name: '開発部' }
+          { id: '1', name: '総務部', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+          { id: '2', name: '営業部', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+          { id: '3', name: '開発部', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
         ];
         
         const mockPositions = [
-          { id: '1', name: '代表取締役' },
-          { id: '2', name: '部長' },
-          { id: '3', name: '課長' }
+          { id: '1', name: '代表取締役', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+          { id: '2', name: '部長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+          { id: '3', name: '課長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
         ];
         
         // モックデータで遅延をシミュレート
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 500));
         
         setEmployees(mockEmployees);
         setFilteredEmployees(mockEmployees);
@@ -119,24 +120,29 @@ const EmployeeListPage: React.FC = () => {
       console.log('🌐 実際のAPIを呼び出し中...');
       
       // 並列でデータを取得
-      const [employeesData, departmentsData, positionsData] = await Promise.all([
+      const [employeesResponse, departmentsResponse, positionsResponse] = await Promise.all([
         apiService.getEmployees(),
         apiService.getDepartments(),
         apiService.getPositions()
       ]);
 
-      console.log('✅ API応答受信:', { employeesData, departmentsData, positionsData });
+      console.log('✅ API応答受信:', { employeesResponse, departmentsResponse, positionsResponse });
 
-      setEmployees(Array.isArray(employeesData?.data) ? employeesData.data : []);
-      setFilteredEmployees(Array.isArray(employeesData?.data) ? employeesData.data : []);
-      setDepartments(Array.isArray(departmentsData?.data) ? departmentsData.data : []);
-      setPositions(Array.isArray(positionsData?.data) ? positionsData.data : []);
+      // レスポンスからデータを取得
+      const employeesData = (employeesResponse as any)?.data || employeesResponse || [];
+      const departmentsData = (departmentsResponse as any)?.data || departmentsResponse || [];
+      const positionsData = (positionsResponse as any)?.data || positionsResponse || [];
+
+      setEmployees(Array.isArray(employeesData) ? employeesData : []);
+      setFilteredEmployees(Array.isArray(employeesData) ? employeesData : []);
+      setDepartments(Array.isArray(departmentsData) ? departmentsData : []);
+      setPositions(Array.isArray(positionsData) ? positionsData : []);
       
     } catch (err) {
       console.error('❌ データ取得エラー:', err);
       console.log('🔄 モックデータフォールバックに切り替え中...');
       
-      // エラー時にもモックデータを使用
+      // 認証エラーやその他のAPIエラー時にモックデータを使用
       const mockEmployees = [
         {
           id: '1',
@@ -165,19 +171,63 @@ const EmployeeListPage: React.FC = () => {
           hireDate: '2021-04-01',
           createdAt: '2021-04-01T00:00:00Z',
           updatedAt: '2021-04-01T00:00:00Z'
+        },
+        {
+          id: '3',
+          employeeId: 'EMP003',
+          firstName: '一郎',
+          lastName: '鈴木',
+          email: 'suzuki@company.com',
+          phone: '090-3456-7890',
+          department: { id: '2', name: '営業部' },
+          position: { id: '3', name: '課長' },
+          employmentType: 'REGULAR' as const,
+          hireDate: '2022-07-01',
+          createdAt: '2022-07-01T00:00:00Z',
+          updatedAt: '2022-07-01T00:00:00Z'
+        },
+        {
+          id: '4',
+          employeeId: 'EMP004',
+          firstName: '美咲',
+          lastName: '高橋',
+          email: 'takahashi@company.com',
+          phone: '090-4567-8901',
+          department: { id: '3', name: '開発部' },
+          position: { id: '4', name: '主任' },
+          employmentType: 'REGULAR' as const,
+          hireDate: '2023-04-01',
+          createdAt: '2023-04-01T00:00:00Z',
+          updatedAt: '2023-04-01T00:00:00Z'
+        },
+        {
+          id: '5',
+          employeeId: 'EMP005',
+          firstName: '健太',
+          lastName: '山田',
+          email: 'yamada@company.com',
+          phone: '090-5678-9012',
+          department: { id: '2', name: '営業部' },
+          position: { id: '5', name: '一般職' },
+          employmentType: 'REGULAR' as const,
+          hireDate: '2024-04-01',
+          createdAt: '2024-04-01T00:00:00Z',
+          updatedAt: '2024-04-01T00:00:00Z'
         }
       ];
       
       const mockDepartments = [
-        { id: '1', name: '総務部' },
-        { id: '2', name: '営業部' },
-        { id: '3', name: '開発部' }
+        { id: '1', name: '総務部', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '2', name: '営業部', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '3', name: '開発部', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
       ];
       
       const mockPositions = [
-        { id: '1', name: '代表取締役' },
-        { id: '2', name: '部長' },
-        { id: '3', name: '課長' }
+        { id: '1', name: '代表取締役', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '2', name: '部長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '3', name: '課長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '4', name: '主任', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '5', name: '一般職', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
       ];
       
       setEmployees(mockEmployees);
@@ -185,7 +235,12 @@ const EmployeeListPage: React.FC = () => {
       setDepartments(mockDepartments);
       setPositions(mockPositions);
       
-      setError('API接続に失敗しました。モックデータを表示しています。');
+      // エラーメッセージを表示（認証エラーの場合は特別なメッセージ）
+      if (err instanceof Error && err.message.includes('認証')) {
+        setError('ログインが必要です。ログインするか、デモデータでの表示を継続します。');
+      } else {
+        setError('API接続に失敗しました。デモデータを表示しています。');
+      }
     } finally {
       setLoading(false);
     }
@@ -278,14 +333,16 @@ const EmployeeListPage: React.FC = () => {
       if (modalMode === 'create') {
         // 新規登録処理
         const newEmployeeResponse = await apiService.createEmployee(formData);
-        setEmployees(prev => [...prev, newEmployeeResponse.data]);
+        const newEmployee = (newEmployeeResponse as any)?.data || newEmployeeResponse;
+        setEmployees(prev => [...prev, newEmployee]);
         alert('社員を正常に登録しました');
         
       } else {
         // 編集処理
         const updatedEmployeeResponse = await apiService.updateEmployee(editingEmployee!.id, formData);
+        const updatedEmployee = (updatedEmployeeResponse as any)?.data || updatedEmployeeResponse;
         setEmployees(prev => prev.map(emp => 
-          emp.id === editingEmployee!.id ? updatedEmployeeResponse.data : emp
+          emp.id === editingEmployee!.id ? updatedEmployee : emp
         ));
         alert('社員情報を正常に更新しました');
       }
@@ -306,6 +363,7 @@ const EmployeeListPage: React.FC = () => {
     setModalMode('create');
     setEditingEmployee(null);
     setFormData({
+      employeeId: '',
       firstName: '',
       lastName: '',
       email: '',
@@ -323,6 +381,7 @@ const EmployeeListPage: React.FC = () => {
     setModalMode('edit');
     setEditingEmployee(employee);
     setFormData({
+      employeeId: employee.employeeId,
       firstName: employee.firstName,
       lastName: employee.lastName,
       email: employee.email,
@@ -381,6 +440,7 @@ const EmployeeListPage: React.FC = () => {
     setModalMode('create');
     setEditingEmployee(null);
     setFormData({
+      employeeId: '',
       firstName: '',
       lastName: '',
       email: '',

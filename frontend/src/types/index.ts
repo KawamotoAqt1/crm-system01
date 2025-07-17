@@ -21,50 +21,54 @@ export interface Employee {
     updatedAt: string;         // バックエンドに合わせて camelCase
   }
   
-  export interface Department {
-    id: string;
-    name: string;
-    description?: string;
-    employeeCount?: number;    // API レスポンスに含まれる場合
-  }
-  
-  export interface Position {
-    id: string;
-    name: string;
-    level?: number;
-    employeeCount?: number;    // API レスポンスに含まれる場合
+  export interface CreateEmployeeData {
+    employeeId: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone?: string;
+    departmentId: string;
+    positionId: string;
+    employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
+    hireDate: string;
   }
   
   export interface NewEmployeeForm {
-    firstName: string;         // バックエンドに合わせて camelCase
-    lastName: string;          // バックエンドに合わせて camelCase
+    employeeId: string;
+    firstName: string;
+    lastName: string;
     email: string;
     phone: string;
-    departmentId: string;      // バックエンドに合わせて camelCase
-    positionId: string;        // バックエンドに合わせて camelCase
+    departmentId: string;
+    positionId: string;
     employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
-    hireDate: string;          // バックエンドに合わせて camelCase
+    hireDate: string;
   }
   
-  export interface UpdateEmployeeForm extends NewEmployeeForm {
-    id: string;
-  }
+  export type EmploymentType = 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
   
-  // API data transfer types
-  export type CreateEmployeeData = NewEmployeeForm;
-  export type CreateDepartmentData = { name: string; description?: string; };
-  export type CreatePositionData = { name: string; level?: number; };
-  export type EmployeeSearchParams = EmployeeFilters;
+  // EmploymentType設定
+  export const EMPLOYMENT_TYPE_CONFIG = {
+    REGULAR: { label: '正社員', className: 'badge badge-blue' },
+    CONTRACT: { label: '契約社員', className: 'badge badge-green' },
+    TEMPORARY: { label: '派遣', className: 'badge badge-yellow' },
+    PART_TIME: { label: 'アルバイト', className: 'badge badge-gray' }
+  } as const;
   
-  // API レスポンス型
   export interface ApiResponse<T> {
     success: boolean;
     data: T;
     message?: string;
-    timestamp: string;
+    error?: string;
   }
   
-  export interface PaginatedResponse<T> {
+  export interface ApiError {
+    code: string;
+    message: string;
+    details?: any;
+  }
+  
+  export interface PaginationData<T> {
     data: T[];
     pagination: {
       page: number;
@@ -75,137 +79,226 @@ export interface Employee {
     message?: string;
     timestamp: string;
   }
-  
-  // Alias for PaginatedResponse
-  export type PaginationData<T> = PaginatedResponse<T>;
-  
-  export interface ApiError {
-    error: string;
-    message: string;
-    details?: Array<{
-      field: string;
-      message: string;
-    }>;
-    timestamp: string;
-  }
-  
-  // 認証関連型
-  export const UserRole = {
-    ADMIN: 'ADMIN',
-    HR_MANAGER: 'HR_MANAGER', 
-    SALES_MANAGER: 'SALES_MANAGER',
-    EMPLOYEE: 'EMPLOYEE'
-  } as const;
-  
-  export type UserRole = typeof UserRole[keyof typeof UserRole];
-  
-  export interface User {
+
+// 部署管理型定義
+export interface Department {
+  id: string;
+  name: string;
+  description?: string | null;
+  employeeCount?: number;
+  employees?: Employee[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateDepartmentData {
+  name: string;
+  description?: string;
+}
+
+export interface DepartmentCreateRequest {
+  name: string;
+  description?: string;
+}
+
+export interface DepartmentUpdateRequest {
+  name: string;
+  description?: string;
+}
+
+export interface DepartmentStats {
+  totalDepartments: number;
+  totalEmployees: number;
+  departmentStats: {
     id: string;
-    email: string;
+    name: string;
+    employeeCount: number;
+  }[];
+}
+
+export interface DepartmentDeleteConflict {
+  employeeCount: number;
+  employees: {
+    id: string;
     firstName: string;
     lastName: string;
-    role: UserRole;
+  }[];
+}
+
+// 役職型定義
+export interface Position {
+  id: string;
+  name: string;
+  level?: number;
+  description?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreatePositionData {
+  name: string;
+  level?: number;
+  description?: string;
+}
+
+// 認証関連型定義
+export const UserRole = {
+  ADMIN: 'ADMIN',
+  HR_MANAGER: 'HR_MANAGER', 
+  SALES_MANAGER: 'SALES_MANAGER',
+  EMPLOYEE: 'EMPLOYEE'
+} as const;
+
+export type UserRoleType = typeof UserRole[keyof typeof UserRole];
+
+export interface User {
+  id: string;
+  employeeId: string;
+  username: string;
+  role: UserRoleType;
+  isActive: boolean;
+  employee?: Employee;
+}
+
+export interface AuthTokens {
+  accessToken: string;
+  refreshToken: string;
+}
+
+export interface LoginCredentials {
+  username: string;
+  email?: string;
+  password: string;
+}
+
+// UI コンポーネント型定義
+export interface SidebarItem {
+  id: string;
+  label: string;
+  icon: string;
+  path: string;
+  badge?: number;
+}
+
+export interface SelectProps {
+  value: string;
+  onChange: (value: string) => void;
+  options: { value: string; label: string }[];
+  name?: string;
+  label?: string;
+  placeholder?: string;
+  disabled?: boolean;
+  required?: boolean;
+  error?: string;
+  className?: string;
+}
+
+export interface ButtonProps {
+  type?: 'button' | 'submit' | 'reset';
+  variant?: 'primary' | 'secondary' | 'danger' | 'outline';
+  size?: 'sm' | 'md' | 'lg';
+  disabled?: boolean;
+  loading?: boolean;
+  onClick?: () => void;
+  children: React.ReactNode;
+  className?: string;
+}
+
+// データ転送用型定義
+export interface EmployeeSearchParams {
+  page?: number;
+  limit?: number;
+  search?: string;
+  departmentId?: string;
+  positionId?: string;
+  employmentType?: EmploymentType;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+}
+
+// API レスポンス型
+export interface DepartmentResponse {
+  success: boolean;
+  data?: Department | Department[] | DepartmentStats;
+  message: string;
+  error?: string;
+}
+
+export interface DepartmentDeleteResponse {
+  success: boolean;
+  message: string;
+  data?: DepartmentDeleteConflict;
+}
+
+// フォーム型定義
+export interface DepartmentFormData {
+  name: string;
+  description: string;
+}
+
+export interface DepartmentFormErrors {
+  name?: string;
+  description?: string;
+  general?: string;
+}
+
+// テーブル表示用型定義
+export interface DepartmentTableItem extends Department {
+  actions?: {
+    canEdit: boolean;
+    canDelete: boolean;
+    hasEmployees: boolean;
+  };
+}
+
+// 検索・フィルタ用型定義
+export interface DepartmentFilters {
+  search: string;
+  sortBy: 'name' | 'employeeCount' | 'createdAt';
+  sortOrder: 'asc' | 'desc';
+  minEmployees?: number;
+  maxEmployees?: number;
+}
+
+// ページネーション型定義
+export interface DepartmentPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+// API エンドポイント定数
+export const API_ENDPOINTS = {
+  // 認証
+  AUTH: {
+    LOGIN: '/api/auth/login',
+    LOGOUT: '/api/auth/logout',
+    REFRESH: '/api/auth/refresh',
+    ME: '/api/auth/me'
+  },
+  // 社員管理
+  EMPLOYEES: {
+    LIST: '/api/employees',
+    CREATE: '/api/employees',
+    GET: (id: string) => `/api/employees/${id}`,
+    UPDATE: (id: string) => `/api/employees/${id}`,
+    DELETE: (id: string) => `/api/employees/${id}`
+  },
+  // 部署管理
+  DEPARTMENTS: {
+    LIST: '/api/departments',
+    CREATE: '/api/departments',
+    GET: (id: string) => `/api/departments/${id}`,
+    UPDATE: (id: string) => `/api/departments/${id}`,
+    DELETE: (id: string) => `/api/departments/${id}`
+  },
+  // 役職管理
+  POSITIONS: {
+    LIST: '/api/positions',
+    CREATE: '/api/positions',
+    GET: (id: string) => `/api/positions/${id}`,
+    UPDATE: (id: string) => `/api/positions/${id}`,
+    DELETE: (id: string) => `/api/positions/${id}`
   }
-  
-  export interface LoginRequest {
-    email: string;
-    password: string;
-  }
-  
-  // LoginCredentials supports both email and username for flexibility
-  export interface LoginCredentials {
-    username?: string;
-    email: string;
-    password: string;
-  }
-  
-  export interface AuthTokens {
-    accessToken: string;
-    refreshToken: string;
-  }
-  
-  export interface LoginResponse {
-    user: User;
-    accessToken: string;
-    refreshToken: string;
-  }
-  
-  // UI関連型
-  export interface SidebarItem {
-    key: string;
-    label: string;
-    path: string;
-    icon?: React.ReactNode;
-    requiredRole?: UserRole | UserRole[];
-  }
-  
-  export interface SelectOption {
-    value: string;
-    label: string;
-  }
-  
-  export interface SelectProps {
-    name?: string;
-    label?: string;
-    value: string;
-    onChange: (value: string) => void;
-    options: SelectOption[];
-    placeholder?: string;
-    error?: string;
-    className?: string;
-    required?: boolean;
-    disabled?: boolean;
-  }
-  
-  // フィルタリング・検索用型
-  export interface EmployeeFilters {
-    search?: string;
-    departmentId?: string;
-    positionId?: string;
-    employmentType?: Employee['employmentType'];
-    page?: number;
-    limit?: number;
-  }
-  
-  // 雇用形態設定（バックエンドに統一）
-  export const EMPLOYMENT_TYPE_CONFIG = {
-    REGULAR: { label: '正社員', className: 'status-badge status-active' },
-    CONTRACT: { label: '契約社員', className: 'status-badge status-pending' },
-    TEMPORARY: { label: '派遣', className: 'status-badge status-warning' },
-    PART_TIME: { label: 'アルバイト', className: 'status-badge status-pending' }
-  } as const;
-  
-  // API エンドポイント定数
-  export const API_ENDPOINTS = {
-    // 認証
-    AUTH: {
-      LOGIN: '/api/auth/login',
-      LOGOUT: '/api/auth/logout',
-      REFRESH: '/api/auth/refresh',
-      ME: '/api/auth/me'
-    },
-    // 社員管理
-    EMPLOYEES: {
-      LIST: '/api/employees',
-      CREATE: '/api/employees',
-      GET: (id: string) => `/api/employees/${id}`,
-      UPDATE: (id: string) => `/api/employees/${id}`,
-      DELETE: (id: string) => `/api/employees/${id}`
-    },
-    // 部署管理
-    DEPARTMENTS: {
-      LIST: '/api/departments',
-      CREATE: '/api/departments',
-      GET: (id: string) => `/api/departments/${id}`,
-      UPDATE: (id: string) => `/api/departments/${id}`,
-      DELETE: (id: string) => `/api/departments/${id}`
-    },
-    // 役職管理
-    POSITIONS: {
-      LIST: '/api/positions',
-      CREATE: '/api/positions',
-      GET: (id: string) => `/api/positions/${id}`,
-      UPDATE: (id: string) => `/api/positions/${id}`,
-      DELETE: (id: string) => `/api/positions/${id}`
-    }
-  } as const;
+} as const;

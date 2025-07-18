@@ -9,7 +9,6 @@ import {
   Department,
   CreateDepartmentData,
   Position,
-  CreatePositionData,
   CreatePositionRequest,
   UpdatePositionRequest,
   EmployeeSearchParams
@@ -161,6 +160,63 @@ async deleteEmployee(id: string): Promise<void> {
   await this.request<ApiResponse<void>>(`/api/v1/employees/${id}`, {
     method: 'DELETE',
   });
+}
+
+// 社員データCSVエクスポート
+async exportEmployeesCSV(params?: EmployeeSearchParams): Promise<void> {
+  try {
+    const queryString = params ? 
+      '?' + new URLSearchParams(params as any).toString() : '';
+    
+    const url = `${this.baseURL}/api/v1/employees/export/csv${queryString}`;
+    
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers.Authorization = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'GET',
+      headers,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        this.clearAccessToken();
+        throw new Error('認証が必要です');
+      }
+      throw new Error('CSVエクスポートに失敗しました');
+    }
+
+    // レスポンスからファイル名取得
+    const contentDisposition = response.headers.get('Content-Disposition');
+    let filename = 'employees.csv';
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+      if (filenameMatch) {
+        filename = filenameMatch[1];
+      }
+    }
+
+    // Blobとしてダウンロード
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    
+    // 仮想リンクでダウンロード実行
+    const link = document.createElement('a');
+    link.href = downloadUrl;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    // メモリクリーンアップ
+    window.URL.revokeObjectURL(downloadUrl);
+    
+  } catch (error) {
+    console.error('CSV エクスポートエラー:', error);
+    throw error;
+  }
 }
 
 // 部署API
@@ -525,6 +581,7 @@ getById: (id: string) => apiService.getEmployee(id),
 create: (data: CreateEmployeeData) => apiService.createEmployee(data),
 update: (id: string, data: Partial<CreateEmployeeData>) => apiService.updateEmployee(id, data),
 delete: (id: string) => apiService.deleteEmployee(id),
+exportCSV: (params?: EmployeeSearchParams) => apiService.exportEmployeesCSV(params),
 };
 
 export const departmentAPI = {

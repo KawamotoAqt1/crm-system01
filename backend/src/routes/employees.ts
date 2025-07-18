@@ -1,6 +1,7 @@
 import express from 'express';
 import { z } from 'zod';
 import { PrismaClient, EmploymentType } from '@prisma/client';
+import { stringify } from 'csv-stringify/sync';
 import { 
   authenticateToken, 
   requireHR, 
@@ -489,6 +490,141 @@ router.delete('/:id', authenticateToken, requireAdmin, async (req, res) => {
       error: {
         code: 'SERVER_001',
         message: 'サーバーエラーが発生しました',
+      },
+    });
+  }
+});
+
+// GET /employees/export/csv - 社員データCSVエクスポート
+router.get('/export/csv', authenticateToken, async (req, res) => {
+  try {
+    const query = querySchema.parse(req.query);
+    
+    // 検索条件構築（既存のGETルートと同じロジック）
+    const where: any = {
+      deletedAt: null,
+    };
+    
+    if (query.search) {
+      where.OR = [
+        { firstName: { contains: query.search, mode: 'insensitive' } },
+        { lastName: { contains: query.search, mode: 'insensitive' } },
+        { email: { contains: query.search, mode: 'insensitive' } },
+        { employeeId: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+    
+    if (query.departmentId) {
+      where.departmentId = query.departmentId;
+    }
+    
+    if (query.positionId) {
+      where.positionId = query.positionId;
+    }
+    
+    if (query.employmentType) {
+      where.employmentType = query.employmentType;
+    }
+    
+    // ソート条件
+    const orderBy: any = {};
+    if (query.sortBy) {
+      orderBy[query.sortBy] = query.sortOrder || 'asc';
+    } else {
+      orderBy.employeeId = 'asc';
+    }
+    
+    // 全データ取得（ページネーションなし）
+    const employees = await prisma.employee.findMany({
+      where,
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+            level: true,
+          },
+        },
+      },
+      orderBy,
+    });
+    
+    // 雇用形態の日本語マップ
+    const employmentTypeMap = {
+      'REGULAR': '正社員',
+      'CONTRACT': '契約社員', 
+      'TEMPORARY': '派遣',
+      'PART_TIME': 'アルバイト'
+    };
+    
+    // CSVデータ変換
+    const csvData = employees.map(emp => ({
+      '社員ID': emp.employeeId,
+      '姓': emp.lastName,
+      '名': emp.firstName,
+      'フリガナ(姓)': emp.lastNameKana || '',
+      'フリガナ(名)': emp.firstNameKana || '',
+      'メールアドレス': emp.email,
+      '電話番号': emp.phone || '',
+      '部署': emp.department.name,
+      '役職': emp.position.name,
+      '役職レベル': emp.position.level,
+      '雇用形態': employmentTypeMap[emp.employmentType] || emp.employmentType,
+      '入社日': emp.hireDate.toISOString().split('T')[0],
+      '生年月日': emp.birthDate ? emp.birthDate.toISOString().split('T')[0] : '',
+      '住所': emp.address || '',
+      '緊急連絡先': emp.emergencyContact || '',
+      '学歴': emp.education || '',
+      '職歴': emp.workHistory || '',
+      'スキル': emp.skills || '',
+      '備考': emp.notes || '',
+      '登録日': emp.createdAt.toISOString().split('T')[0],
+      '最終更新日': emp.updatedAt.toISOString().split('T')[0]
+    }));
+    
+    // CSV文字列生成
+    const csvString = stringify(csvData, {
+      header: true,
+      bom: true, // BOM付きでExcelでの文字化け防止
+      quoted_string: true,
+    });
+    
+    // ファイル名生成（日時付き）
+    const now = new Date();
+    const timestamp = now.toISOString().slice(0, 19).replace(/[:-]/g, '');
+    const filename = `employees_${timestamp}.csv`;
+    
+    // レスポンス設定
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    res.send(csvString);
+    
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'VALID_001',
+          message: 'バリデーションエラー',
+          details: error.issues,
+        },
+      });
+    }
+    
+    console.error('CSV export error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_001',
+        message: 'CSVエクスポートに失敗しました',
       },
     });
   }

@@ -44,6 +44,9 @@ const EmployeeListPage: React.FC = () => {
   // 詳細表示モーダル関連のstate
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [detailEmployee, setDetailEmployee] = useState<Employee | null>(null);
+  
+  // CSVエクスポート関連のstate
+  const [isExporting, setIsExporting] = useState(false);
 
   // データ取得
   useEffect(() => {
@@ -101,9 +104,9 @@ const EmployeeListPage: React.FC = () => {
         ];
         
         const mockPositions = [
-          { id: '1', name: '代表取締役', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
-          { id: '2', name: '部長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
-          { id: '3', name: '課長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
+          { id: '1', name: '代表取締役', level: 10, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+          { id: '2', name: '部長', level: 8, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+          { id: '3', name: '課長', level: 7, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
         ];
         
         // モックデータで遅延をシミュレート
@@ -223,11 +226,11 @@ const EmployeeListPage: React.FC = () => {
       ];
       
       const mockPositions = [
-        { id: '1', name: '代表取締役', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
-        { id: '2', name: '部長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
-        { id: '3', name: '課長', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
-        { id: '4', name: '主任', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
-        { id: '5', name: '一般職', createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
+        { id: '1', name: '代表取締役', level: 10, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '2', name: '部長', level: 8, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '3', name: '課長', level: 7, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '4', name: '主任', level: 6, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' },
+        { id: '5', name: '一般職', level: 1, createdAt: '2020-01-01T00:00:00Z', updatedAt: '2020-01-01T00:00:00Z' }
       ];
       
       setEmployees(mockEmployees);
@@ -453,6 +456,45 @@ const EmployeeListPage: React.FC = () => {
     setFormErrors({});
   };
 
+  // CSVエクスポート処理関数
+  const handleExportCSV = async () => {
+    try {
+      setIsExporting(true);
+      
+      // 現在のフィルタ条件でエクスポート
+      const exportParams: any = {};
+      
+      if (searchTerm) {
+        exportParams.search = searchTerm;
+      }
+      
+      if (selectedDepartment) {
+        const department = departments.find(d => d.name === selectedDepartment);
+        if (department) {
+          exportParams.departmentId = department.id;
+        }
+      }
+      
+      if (selectedPosition) {
+        const position = positions.find(p => p.name === selectedPosition);
+        if (position) {
+          exportParams.positionId = position.id;
+        }
+      }
+      
+      await apiService.exportEmployeesCSV(exportParams);
+      
+      // 成功メッセージ（任意）
+      alert('CSVファイルのダウンロードを開始しました');
+      
+    } catch (error: any) {
+      console.error('CSVエクスポートエラー:', error);
+      alert('CSVエクスポートに失敗しました: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // UIコンポーネント
   const EmploymentTypeBadge: React.FC<{ type: Employee['employmentType'] }> = ({ type }) => {
     const config = EMPLOYMENT_TYPE_CONFIG[type];
@@ -525,10 +567,27 @@ const EmployeeListPage: React.FC = () => {
           <h1 className="content-title">社員管理</h1>
           <p className="content-subtitle">社員情報の閲覧・編集・管理を行います</p>
         </div>
-        <button className="add-btn" onClick={openCreateModal}>
-          <span>+</span>
-          <span>新規登録</span>
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          {/* CSVエクスポートボタン */}
+          <button 
+            className="add-btn"
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            style={{
+              backgroundColor: isExporting ? '#9ca3af' : '#059669',
+              cursor: isExporting ? 'not-allowed' : 'pointer'
+            }}
+          >
+            <span>{isExporting ? '📤' : '📊'}</span>
+            <span>{isExporting ? 'エクスポート中...' : 'CSV出力'}</span>
+          </button>
+          
+          {/* 新規登録ボタン */}
+          <button className="add-btn" onClick={openCreateModal}>
+            <span>+</span>
+            <span>新規登録</span>
+          </button>
+        </div>
       </div>
       
       <div className="search-filters">
@@ -560,6 +619,21 @@ const EmployeeListPage: React.FC = () => {
           ))}
         </select>
       </div>
+      
+      {/* 検索・フィルタエリアの後に追加 */}
+      {(searchTerm || selectedDepartment || selectedPosition) && (
+        <div style={{
+          backgroundColor: '#f0f9ff',
+          border: '1px solid #bfdbfe',
+          color: '#1e40af',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          fontSize: '14px'
+        }}>
+          💡 現在のフィルタ条件（{searchTerm && `検索: "${searchTerm}"`}{selectedDepartment && `, 部署: ${selectedDepartment}`}{selectedPosition && `, 役職: ${selectedPosition}`}）でCSV出力されます
+        </div>
+      )}
       
       <div className="table-container">
         <table className="table">

@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Button, Input } from '../../components/ui';
 import { LoginCredentials } from '../../types';
+import '../../styles/employee-management.css';
 
 interface LoginPageProps {
   onLogin: (credentials: LoginCredentials) => Promise<{ success: boolean; error?: string }>;
@@ -59,13 +60,22 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, loading = false }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* ヘッダー */}
-        <div>
-          <div className="mx-auto h-12 w-12 flex items-center justify-center rounded-full bg-blue-100">
+    <div className="employee-management-page">
+      {/* Header */}
+      <div className="header">
+        <div className="header-left">営業支援ツール統合システム</div>
+        <div className="header-right">
+          <span style={{ color: '#666', fontSize: '14px' }}>ログイン画面</span>
+        </div>
+      </div>
+      
+      {/* Main Content */}
+      <div className="login-container">
+        <div className="login-form-wrapper">
+          {/* ログインアイコン */}
+          <div className="login-icon">
             <svg 
-              className="h-6 w-6 text-blue-600" 
+              className="icon" 
               fill="none" 
               stroke="currentColor" 
               viewBox="0 0 24 24"
@@ -78,47 +88,43 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, loading = false }
               />
             </svg>
           </div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            営業支援ツール統合システム
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            アカウントにログインしてください
-          </p>
-        </div>
+          
+          <h2 className="login-title">アカウントログイン</h2>
+          <p className="login-subtitle">システムにアクセスするためにログインしてください</p>
 
-        {/* ログインフォーム */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="space-y-4">
-            <Input
-              name="username"
-              label="ユーザー名"
-              type="text"
-                             value={credentials.username || ''}
-              onChange={handleInputChange('username')}
-              placeholder="ユーザー名を入力"
-              required
-              disabled={isSubmitting || loading}
-            />
+          {/* ログインフォーム */}
+          <form className="login-form" onSubmit={handleSubmit}>
+            <div className="form-group">
+              <Input
+                name="username"
+                label="ユーザー名"
+                type="text"
+                value={credentials.username || ''}
+                onChange={handleInputChange('username')}
+                placeholder="ユーザー名を入力"
+                required
+                disabled={isSubmitting || loading}
+              />
+            </div>
 
-            <Input
-              name="password"
-              label="パスワード"
-              type="password"
-              value={credentials.password}
-              onChange={handleInputChange('password')}
-              placeholder="パスワードを入力"
-              required
-              disabled={isSubmitting || loading}
-            />
-          </div>
+            <div className="form-group">
+              <Input
+                name="password"
+                label="パスワード"
+                type="password"
+                value={credentials.password}
+                onChange={handleInputChange('password')}
+                placeholder="パスワードを入力"
+                required
+                disabled={isSubmitting || loading}
+              />
+            </div>
 
-          {/* エラーメッセージ */}
-          {error && (
-            <div className="rounded-md bg-red-50 p-4">
-              <div className="flex">
-                <div className="flex-shrink-0">
+            {/* エラーメッセージ */}
+            {error && (
+              <div className="error-message">
+                <div className="error-icon">
                   <svg 
-                    className="h-5 w-5 text-red-400" 
                     fill="none" 
                     stroke="currentColor" 
                     viewBox="0 0 24 24"
@@ -131,34 +137,40 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, loading = false }
                     />
                   </svg>
                 </div>
-                <div className="ml-3">
-                  <p className="text-sm text-red-800">{error}</p>
-                </div>
+                <p>{error}</p>
+              </div>
+            )}
+
+            {/* ログインボタン */}
+            <div className="form-group">
+              <Button
+                type="submit"
+                className="login-button"
+                disabled={isSubmitting || loading}
+                loading={isSubmitting || loading}
+              >
+                ログイン
+              </Button>
+            </div>
+          </form>
+
+          {/* テストアカウント情報 */}
+          <div className="test-accounts">
+            <h3>テストアカウント</h3>
+            <div className="test-account-list">
+              <div className="test-account-item">
+                <strong>管理者:</strong> admin / password123
+              </div>
+              <div className="test-account-item">
+                <strong>人事管理者:</strong> hr_manager / password123
+              </div>
+              <div className="test-account-item">
+                <strong>営業管理者:</strong> sales_manager / password123
+              </div>
+              <div className="test-account-item">
+                <strong>一般社員:</strong> employee1 / password123
               </div>
             </div>
-          )}
-
-          {/* ログインボタン */}
-          <div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isSubmitting || loading}
-              loading={isSubmitting || loading}
-            >
-              ログイン
-            </Button>
-          </div>
-        </form>
-
-        {/* テストアカウント情報 */}
-        <div className="mt-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-sm font-medium text-blue-800 mb-2">テストアカウント</h3>
-          <div className="text-xs text-blue-700 space-y-1">
-            <p><strong>管理者:</strong> admin / password123</p>
-            <p><strong>人事管理者:</strong> hr_manager / password123</p>
-            <p><strong>営業管理者:</strong> sales_manager / password123</p>
-            <p><strong>一般社員:</strong> employee1 / password123</p>
           </div>
         </div>
       </div>

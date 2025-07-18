@@ -4,7 +4,8 @@ import { LoginPage } from './pages/auth/LoginPage';
 import { useAuthContext } from './contexts/AuthContext';
 import EmployeeListPage from './pages/employees/EmployeeListPage';
 import DepartmentListPage from './pages/departments/DepartmentListPage';
-import PositionListPage from './pages/positions/PositionListPage';  // 新規追加
+import PositionListPage from './pages/positions/PositionListPage';
+import AreaListPage from './pages/areas/AreaListPage';
 import Layout from './components/layout/Layout';
 import './App.css';
 
@@ -38,46 +39,26 @@ const DashboardPage: React.FC = () => {
           <p className="text-2xl font-bold text-yellow-600">3</p>
         </div>
       </div>
-      
-      <div className="table-container p-6">
-        <p className="text-gray-600 mb-2">
-          🎉 <strong>役職管理システムが実装完了しました！</strong>
-        </p>
-        <p className="text-sm text-gray-500 mb-4">
-          サイドバーの「役職管理」から新しい役職管理画面をご確認ください。
-        </p>
-        <div className="p-4 bg-gray-50 rounded-lg">
-          <h4 className="text-sm font-medium text-gray-800 mb-2">✅ 完成した機能：</h4>
-          <ul className="text-sm text-gray-700 space-y-1">
-            <li>• 社員管理システム（完全動作）</li>
-            <li>• 部署管理システム（完全動作）</li>
-            <li>• 役職管理システム（本日完成 🆕）</li>
-            <li>• 統合ナビゲーション</li>
-            <li>• レスポンシブデザイン</li>
-            <li>• 検索・フィルタリング機能</li>
-            <li>• 統一されたUI/UX</li>
-          </ul>
-        </div>
-        
-        <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-          <h4 className="text-sm font-medium text-blue-800 mb-2">🎯 役職管理の特徴：</h4>
-          <ul className="text-sm text-blue-700 space-y-1">
-            <li>• レベル1-10の階層管理</li>
-            <li>• レベル別カラーバッジ表示</li>
-            <li>• 社員との関連チェック付き削除</li>
-            <li>• 詳細な説明フィールド対応</li>
-            <li>• リアルタイム検索機能</li>
-            <li>• APIエラー時のモックデータフォールバック</li>
-          </ul>
-        </div>
-      </div>
     </Layout>
   );
 };
 
+
+
 // プライベートルートコンポーネント
 const PrivateRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated } = useAuthContext();
+  const { isAuthenticated, loading } = useAuthContext();
+  
+  // ローディング中の場合
+  if (loading) {
+    return (
+      <div style={{ padding: '20px', textAlign: 'center' }}>
+        <p>認証状態を確認中...</p>
+      </div>
+    );
+  }
+  
+  // 認証済みの場合は子コンポーネントを表示、未認証の場合はログインページへリダイレクト
   return isAuthenticated ? <>{children}</> : <Navigate to="/login" />;
 };
 
@@ -90,20 +71,6 @@ const LoginWrapper: React.FC = () => {
       onLogin={login}
       loading={false}
     />
-  );
-};
-
-// 認証済みページのルートコンポーネント  
-const AuthenticatedRoutes: React.FC = () => {
-  return (
-    <Routes>
-      <Route path="/dashboard" element={<DashboardPage />} />
-      <Route path="/employees" element={<EmployeeListPage />} />
-      <Route path="/departments" element={<DepartmentListPage />} />
-      <Route path="/positions" element={<PositionListPage />} />  {/* 新規追加 */}
-      <Route path="/" element={<Navigate to="/dashboard" />} />
-      <Route path="*" element={<Navigate to="/dashboard" />} />
-    </Routes>
   );
 };
 
@@ -123,13 +90,30 @@ const App: React.FC = () => {
         
         {/* 認証が必要なページ */}
         <Route 
-          path="/*" 
-          element={
-            <PrivateRoute>
-              <AuthenticatedRoutes />
-            </PrivateRoute>
-          } 
+          path="/dashboard" 
+          element={<PrivateRoute><DashboardPage /></PrivateRoute>} 
         />
+        <Route 
+          path="/employees" 
+          element={<PrivateRoute><EmployeeListPage /></PrivateRoute>} 
+        />
+        <Route 
+          path="/departments" 
+          element={<PrivateRoute><DepartmentListPage /></PrivateRoute>} 
+        />
+        <Route 
+          path="/positions" 
+          element={<PrivateRoute><PositionListPage /></PrivateRoute>} 
+        />
+        <Route 
+          path="/areas" 
+          element={<PrivateRoute><AreaListPage /></PrivateRoute>} 
+        />
+        
+
+        {/* デフォルトリダイレクト */}
+        <Route path="/" element={<Navigate to="/dashboard" />} />
+        <Route path="*" element={<Navigate to="/dashboard" />} />
       </Routes>
     </Router>
   );

@@ -65,6 +65,11 @@ private async request<T>(
       if (response.status === 401) {
         // 認証エラーの場合、トークンをクリア
         this.clearAccessToken();
+        // 開発環境でコンソールエラーを抑制
+        const isDev = import.meta.env.DEV;
+        if (!isDev) {
+          console.warn('認証が必要です');
+        }
         throw new Error('認証が必要です');
       }
       
@@ -122,6 +127,10 @@ async logout(): Promise<ApiResponse<any>> {
 }
 
 async getCurrentUser(): Promise<ApiResponse<{ user: User }>> {
+  // アクセストークンがない場合は早期にエラーを返す
+  if (!this.accessToken) {
+    throw new Error('認証が必要です');
+  }
   return this.request<ApiResponse<{ user: User }>>('/api/v1/auth/me');
 }
 

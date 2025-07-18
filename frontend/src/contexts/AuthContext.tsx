@@ -142,9 +142,29 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       dispatch({ type: 'SET_LOADING', payload: true });
       
       const accessToken = localStorage.getItem('accessToken');
+      const refreshTokenValue = localStorage.getItem('refreshToken');
       
-      if (!accessToken) {
+      // トークンが全くない場合は未認証として処理
+      if (!accessToken && !refreshTokenValue) {
         dispatch({ type: 'SET_UNAUTH' });
+        return;
+      }
+
+      // アクセストークンがあるが、リフレッシュトークンがない場合も未認証
+      if (!refreshTokenValue) {
+        dispatch({ type: 'SET_UNAUTH' });
+        return;
+      }
+
+      // アクセストークンがない場合は、まずリフレッシュを試行
+      if (!accessToken) {
+        const refreshed = await refreshToken();
+        if (!refreshed) {
+          dispatch({ type: 'SET_UNAUTH' });
+          return;
+        }
+        // リフレッシュ成功後、再帰的にcheckAuthを呼び出す
+        await checkAuth();
         return;
       }
 
@@ -157,6 +177,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           return;
         }
       } catch (error) {
+        // 401エラーの場合はログ出力しない（正常な動作）
+        if (error instanceof Error && !error.message.includes('認証が必要です')) {
+          console.error('認証チェックエラー:', error);
+        }
+        
         // アクセストークンが無効な場合、リフレッシュを試行
         const refreshed = await refreshToken();
         
@@ -168,6 +193,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       dispatch({ type: 'SET_UNAUTH' });
     } catch (error) {
+      console.error('認証チェック処理エラー:', error);
       dispatch({ type: 'SET_UNAUTH' });
     }
   }, [refreshToken]);

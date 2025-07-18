@@ -61,6 +61,13 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
             <span>部署管理</span>
           </button>
           <button 
+            onClick={() => handleNavigation('/areas')} 
+            className={`sidebar-item ${isActive('/areas') ? 'active' : ''}`}
+          >
+            <i>🗺️</i>
+            <span>エリア管理</span>
+          </button>
+          <button 
             onClick={() => handleNavigation('/positions')} 
             className={`sidebar-item ${isActive('/positions') ? 'active' : ''}`}
           >

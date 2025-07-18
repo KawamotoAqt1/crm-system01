@@ -62,6 +62,7 @@ const createEmployeeSchema = z.object({
   phone: z.string().max(20, '電話番号は20文字以内です').nullish().transform(val => val || null),
   departmentId: z.string().uuid('有効な部署IDを選択してください'),
   positionId: z.string().uuid('有効な役職IDを選択してください'),
+  areaId: z.string().uuid('有効なエリアIDを選択してください').nullish().transform(val => val || null),
   hireDate: z.string().refine((date) => !isNaN(Date.parse(date)), '有効な入社日を入力してください'),
   employmentType: z.nativeEnum(EmploymentType, '有効な雇用形態を選択してください'),
   birthDate: z.string().refine((date) => {
@@ -520,6 +521,7 @@ router.post('/import/execute', upload.single('csvFile'), async (req, res) => {
                 email: data.メールアドレス,
                 departmentId: departmentId,
                 positionId: positionId,
+                areaId: null, // CSVインポート時はエリア未設定
                 employmentType: employmentTypeMap[data.雇用形態],
                 hireDate: new Date(data.入社日),
                 phone: data.電話番号,
@@ -667,6 +669,12 @@ router.get('/', async (req, res) => {
               id: true,
               name: true,
               level: true,
+            },
+          },
+          area: {
+            select: {
+              id: true,
+              name: true,
             },
           },
         },
@@ -996,6 +1004,12 @@ router.put('/:id', async (req, res) => {
             id: true,
             name: true,
             level: true,
+          },
+        },
+        area: {
+          select: {
+            id: true,
+            name: true,
           },
         },
       },

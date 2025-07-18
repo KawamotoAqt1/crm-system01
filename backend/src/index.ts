@@ -13,6 +13,7 @@ import authRouter from './routes/auth';
 import employeeRouter from './routes/employees';
 import departmentRouter from './routes/departments';
 import positionRouter from './routes/positions';
+import areaRouter from './routes/areas';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -64,6 +65,7 @@ app.use('/api/v1/auth', authRouter);
 app.use('/api/v1/employees', employeeRouter);
 app.use('/api/v1/departments', departmentRouter);
 app.use('/api/v1/positions', positionRouter);
+app.use('/api/v1/areas', areaRouter);
 
 
 
@@ -112,5 +114,7 @@ app.listen(PORT, () => {
   console.log('   POST /api/v1/departments   - Create department');
   console.log('   GET  /api/v1/positions     - Get positions');
   console.log('   POST /api/v1/positions     - Create position');
+  console.log('   GET  /api/v1/areas         - Get areas');
+  console.log('   POST /api/v1/areas         - Create area');
   console.log('🔧 Environment:', process.env.NODE_ENV || 'development');
 });// テストコメント

@@ -17,10 +17,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ onLogin, loading = false }
   const [error, setError] = useState<string>('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleInputChange = (field: keyof LoginCredentials) => (value: string) => {
+  const handleInputChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setCredentials(prev => ({
       ...prev,
-      [field]: value,
+      [field]: e.target.value,
     }));
     
     // エラーをクリア

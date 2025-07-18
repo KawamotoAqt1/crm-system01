@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import { apiService } from '../../services/api';
-import { Employee, Department, Position, NewEmployeeForm, EMPLOYMENT_TYPE_CONFIG } from '../../types';
+import { Employee, Department, Position, Area, NewEmployeeForm, EMPLOYMENT_TYPE_CONFIG } from '../../types';
+import { areaApi } from '../../services/areaApi';
 import EmployeeImportModal from '../../components/employees/EmployeeImportModal';
 
 const EmployeeListPage: React.FC = () => {
@@ -9,6 +10,7 @@ const EmployeeListPage: React.FC = () => {
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
   const [positions, setPositions] = useState<Position[]>([]);
+  const [areas, setAreas] = useState<Area[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -16,6 +18,7 @@ const EmployeeListPage: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDepartment, setSelectedDepartment] = useState('');
   const [selectedPosition, setSelectedPosition] = useState('');
+  const [selectedArea, setSelectedArea] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   
@@ -33,6 +36,7 @@ const EmployeeListPage: React.FC = () => {
     phone: '',
     departmentId: '',
     positionId: '',
+    areaId: '',
     employmentType: 'REGULAR',
     hireDate: '',
     birthDate: '',
@@ -71,6 +75,11 @@ const EmployeeListPage: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // エリアデータの変更を監視
+  useEffect(() => {
+    console.log('🏢 エリアデータが更新されました:', areas, 'length:', areas.length);
+  }, [areas]);
 
   const loadInitialData = async () => {
     try {
@@ -142,23 +151,28 @@ const EmployeeListPage: React.FC = () => {
       console.log('🌐 実際のAPIを呼び出し中...');
       
       // 並列でデータを取得
-      const [employeesResponse, departmentsResponse, positionsResponse] = await Promise.all([
+      const [employeesResponse, departmentsResponse, positionsResponse, areasResponse] = await Promise.all([
         apiService.getEmployees(),
         apiService.getDepartments(),
-        apiService.getPositions()
+        apiService.getPositions(),
+        areaApi.getAll()
       ]);
 
-      console.log('✅ API応答受信:', { employeesResponse, departmentsResponse, positionsResponse });
+      console.log('✅ API応答受信:', { employeesResponse, departmentsResponse, positionsResponse, areasResponse });
 
       // レスポンスからデータを取得
       const employeesData = (employeesResponse as any)?.data || employeesResponse || [];
       const departmentsData = (departmentsResponse as any)?.data || departmentsResponse || [];
       const positionsData = (positionsResponse as any)?.data || positionsResponse || [];
+      const areasData = Array.isArray(areasResponse) ? areasResponse : [];
+
+      console.log('📊 取得したエリアデータ:', areasData);
 
       setEmployees(Array.isArray(employeesData) ? employeesData : []);
       setFilteredEmployees(Array.isArray(employeesData) ? employeesData : []);
       setDepartments(Array.isArray(departmentsData) ? departmentsData : []);
       setPositions(Array.isArray(positionsData) ? positionsData : []);
+      setAreas(areasData);
       
     } catch (err) {
       console.error('❌ データ取得エラー:', err);
@@ -290,9 +304,13 @@ const EmployeeListPage: React.FC = () => {
       filtered = filtered.filter(emp => emp.position.name === selectedPosition);
     }
     
+    if (selectedArea) {
+      filtered = filtered.filter(emp => emp.area?.name === selectedArea);
+    }
+    
     setFilteredEmployees(filtered);
     setCurrentPage(1);
-  }, [employees, searchTerm, selectedDepartment, selectedPosition]);
+  }, [employees, searchTerm, selectedDepartment, selectedPosition, selectedArea]);
 
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -505,6 +523,7 @@ const EmployeeListPage: React.FC = () => {
       phone: '',
       departmentId: '',
       positionId: '',
+      areaId: '',
       employmentType: 'REGULAR',
       hireDate: '',
       birthDate: '',
@@ -536,6 +555,7 @@ const EmployeeListPage: React.FC = () => {
       phone: employee.phone || '',
       departmentId: employee.department.id,
       positionId: employee.position.id,
+      areaId: employee.area?.id || '',
       employmentType: employee.employmentType,
       hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
       birthDate: employee.birthDate ? new Date(employee.birthDate).toISOString().split('T')[0] : '',
@@ -612,6 +632,7 @@ const EmployeeListPage: React.FC = () => {
       phone: '',
       departmentId: '',
       positionId: '',
+      areaId: '',
       employmentType: 'REGULAR',
       hireDate: '',
       birthDate: '',
@@ -818,6 +839,20 @@ const EmployeeListPage: React.FC = () => {
             <option key={pos.id} value={pos.name}>{pos.name}</option>
           ))}
         </select>
+        <select
+          className="filter-select"
+          value={selectedArea}
+          onChange={e => setSelectedArea(e.target.value)}
+        >
+          <option value="">すべてのエリア</option>
+          {Array.isArray(areas) && areas.length > 0 ? (
+            areas.map(area => (
+              <option key={area.id} value={area.name}>{area.name}</option>
+            ))
+          ) : (
+            <option disabled>読み込み中...</option>
+          )}
+        </select>
       </div>
       
       {/* 検索・フィルタエリアの後に追加 */}
@@ -842,6 +877,7 @@ const EmployeeListPage: React.FC = () => {
               <th>社員</th>
               <th>部署</th>
               <th>役職</th>
+              <th>エリア</th>
               <th>雇用形態</th>
               <th>入社日</th>
               <th>操作</th>
@@ -869,6 +905,7 @@ const EmployeeListPage: React.FC = () => {
                   </td>
                   <td>{emp.department.name}</td>
                   <td>{emp.position.name}</td>
+                  <td>{emp.area?.name || '未設定'}</td>
                   <td><EmploymentTypeBadge type={emp.employmentType} /></td>
                   <td>{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString('ja-JP') : '未設定'}</td>
                   <td>
@@ -1207,6 +1244,45 @@ const EmployeeListPage: React.FC = () => {
                   {formErrors.positionId && (
                     <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.positionId}</span>
                   )}
+                </div>
+
+                {/* エリア */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>
+                    エリア
+                  </label>
+                  <select
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      backgroundColor: 'white'
+                    }}
+                    value={formData.areaId}
+                    onChange={e => handleInputChange('areaId', e.target.value)}
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  >
+                    <option value="">エリアを選択してください（任意）</option>
+                    {Array.isArray(areas) && areas.length > 0 ? (
+                      areas.map(area => (
+                        <option key={area.id} value={area.id}>{area.name}</option>
+                      ))
+                    ) : (
+                      <option disabled>エリア情報を読み込み中...</option>
+                    )}
+                  </select>
                 </div>
 
                 {/* 雇用形態 */}
@@ -2139,6 +2215,24 @@ const EmployeeListPage: React.FC = () => {
                         margin: 0,
                         padding: '8px 0'
                       }}>{detailEmployee.position.name}</p>
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>エリア</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0'
+                      }}>{detailEmployee.area?.name || '未設定'}</p>
                     </div>
 
                     <div>

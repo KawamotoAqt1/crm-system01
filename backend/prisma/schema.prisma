@@ -53,6 +53,20 @@ model Position {
   @@map("positions")
 }
 
+model Area {
+  id          String    @id @default(uuid()) @db.Uuid
+  name        String    @unique @db.VarChar(100)
+  description String?   @db.Text
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+  deletedAt   DateTime? @map("deleted_at")
+
+  // Relations
+  employees Employee[]
+
+  @@map("areas")
+}
+
 model Employee {
   id               String         @id @default(uuid()) @db.Uuid
   employeeId       String         @unique @map("employee_id") @db.VarChar(20)
@@ -64,6 +78,7 @@ model Employee {
   phone            String?        @db.VarChar(20)
   departmentId     String         @map("department_id") @db.Uuid
   positionId       String         @map("position_id") @db.Uuid
+  areaId           String?        @map("area_id") @db.Uuid
   hireDate         DateTime       @map("hire_date") @db.Date
   employmentType   EmploymentType @map("employment_type")
   birthDate        DateTime?      @map("birth_date") @db.Date
@@ -81,6 +96,7 @@ model Employee {
   // Relations
   department Department @relation(fields: [departmentId], references: [id])
   position   Position   @relation(fields: [positionId], references: [id])
+  area       Area?      @relation(fields: [areaId], references: [id])
   user       User?
 
   @@map("employees")

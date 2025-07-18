@@ -25,8 +25,15 @@ const refreshTokenSchema = z.object({
 // POST /auth/login - ログイン
 router.post('/login', async (req, res) => {
   try {
+    console.log('🔐 ログイン試行:', { 
+      body: req.body, 
+      username: req.body?.username,
+      hasPassword: !!req.body?.password 
+    });
+
     // バリデーション
     const { username, password } = loginSchema.parse(req.body);
+    console.log('✅ バリデーション通過:', { username });
 
     // ユーザー検索
     const user = await prisma.user.findUnique({
@@ -41,7 +48,14 @@ router.post('/login', async (req, res) => {
       },
     });
 
+    console.log('🔍 ユーザー検索結果:', { 
+      found: !!user, 
+      isActive: user?.isActive,
+      hasEmployee: !!user?.employee 
+    });
+
     if (!user || !user.isActive) {
+      console.log('❌ ユーザーが見つからないか非アクティブ');
       return res.status(401).json({
         success: false,
         error: {
@@ -52,8 +66,15 @@ router.post('/login', async (req, res) => {
     }
 
     // パスワード検証
+    console.log('🔑 パスワード検証開始:', { 
+      hasPasswordHash: !!user.passwordHash,
+      passwordLength: password.length 
+    });
     const isPasswordValid = await comparePassword(password, user.passwordHash);
+    console.log('🔑 パスワード検証結果:', { isPasswordValid });
+    
     if (!isPasswordValid) {
+      console.log('❌ パスワードが一致しません');
       return res.status(401).json({
         success: false,
         error: {
@@ -106,7 +127,10 @@ router.post('/login', async (req, res) => {
       message: 'ログインに成功しました',
     });
   } catch (error) {
+    console.log('💥 ログイン処理でエラー発生:', error);
+    
     if (error instanceof z.ZodError) {
+      console.log('❌ バリデーションエラー:', error.issues);
       return res.status(400).json({
         success: false,
         error: {
@@ -117,12 +141,13 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    console.error('Login error:', error);
+    console.error('💥 予期しないエラー:', error);
     res.status(500).json({
       success: false,
       error: {
         code: 'SERVER_001',
         message: 'サーバーエラーが発生しました',
+        details: error instanceof Error ? error.message : 'Unknown error',
       },
     });
   }

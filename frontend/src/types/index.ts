@@ -17,6 +17,10 @@ export interface Employee {
     id: string;
     name: string;
   };
+  area?: {
+    id: string;
+    name: string;
+  };
   employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME'; // バックエンドに統一
   hireDate: string;          // バックエンドに合わせて camelCase
   birthDate?: string;        // 生年月日
@@ -41,6 +45,7 @@ export interface CreateEmployeeData {
   phone?: string;
   departmentId: string;
   positionId: string;
+  areaId?: string;
   employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
   hireDate: string;
   birthDate?: string;
@@ -63,6 +68,7 @@ export interface NewEmployeeForm {
   phone: string;
   departmentId: string;
   positionId: string;
+  areaId: string;
   employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
   hireDate: string;
   birthDate: string;
@@ -286,6 +292,127 @@ export const POSITION_LEVEL_CONFIG = {
 } as const;
 
 // ========================================
+// エリア管理型定義（新規追加）
+// ========================================
+
+// エリア基本情報型
+export interface Area {
+  id: string;
+  name: string;
+  description?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  deletedAt?: string | null;
+}
+
+// エリア作成リクエスト型
+export interface CreateAreaRequest {
+  name: string;
+  description?: string;
+}
+
+// エリア更新リクエスト型
+export interface UpdateAreaRequest {
+  name?: string;
+  description?: string;
+}
+
+// エリア作成データ型
+export interface CreateAreaData {
+  name: string;
+  description?: string;
+}
+
+// API レスポンス型定義
+export interface AreaListResponse {
+  success: true;
+  data: Area[];
+}
+
+export interface AreaResponse {
+  success: true;
+  data: Area;
+  message?: string;
+}
+
+// フォームデータ型定義
+export interface AreaFormData {
+  name: string;
+  description: string;
+}
+
+// フォームエラー型定義
+export interface AreaFormErrors {
+  name?: string;
+  description?: string;
+  general?: string;
+}
+
+// エリア統計情報型
+export interface AreaStats {
+  totalAreas: number;
+  totalEmployees: number;
+  areaStats: {
+    id: string;
+    name: string;
+    employeeCount: number;
+  }[];
+}
+
+// エリア削除時の競合情報型
+export interface AreaDeleteConflict {
+  employeeCount: number;
+  employees: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    department: {
+      id: string;
+      name: string;
+    };
+  }[];
+}
+
+// テーブル表示用型定義
+export interface AreaTableItem extends Area {
+  employeeCount?: number;
+  actions?: {
+    canEdit: boolean;
+    canDelete: boolean;
+    hasEmployees: boolean;
+  };
+}
+
+// 検索・フィルタ用型定義
+export interface AreaFilters {
+  search: string;
+  sortBy: 'name' | 'employeeCount' | 'createdAt';
+  sortOrder: 'asc' | 'desc';
+}
+
+// ページネーション型定義
+export interface AreaPagination {
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+// エリアAPI レスポンス型
+export interface AreaApiResponse {
+  success: boolean;
+  data?: Area | Area[] | AreaStats;
+  message: string;
+  error?: string;
+}
+
+export interface AreaDeleteResponse {
+  success: boolean;
+  message: string;
+  data?: AreaDeleteConflict;
+}
+
+// ========================================
 // 既存の型定義（変更なし）
 // ========================================
 
@@ -359,6 +486,7 @@ limit?: number;
 search?: string;
 departmentId?: string;
 positionId?: string;
+areaId?: string;
 employmentType?: EmploymentType;
 sortBy?: string;
 sortOrder?: 'asc' | 'desc';
@@ -462,5 +590,13 @@ POSITIONS: {
   GET: (id: string) => `/api/positions/${id}`,
   UPDATE: (id: string) => `/api/positions/${id}`,
   DELETE: (id: string) => `/api/positions/${id}`
+},
+// エリア管理
+AREAS: {
+  LIST: '/api/areas',
+  CREATE: '/api/areas',
+  GET: (id: string) => `/api/areas/${id}`,
+  UPDATE: (id: string) => `/api/areas/${id}`,
+  DELETE: (id: string) => `/api/areas/${id}`
 }
 } as const;

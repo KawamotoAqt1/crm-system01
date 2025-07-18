@@ -29,21 +29,33 @@ const createEmployeeSchema = z.object({
   employeeId: z.string().max(20, '社員IDは20文字以内です').optional(), // 新規登録時は自動生成するためoptional
   firstName: z.string().min(1, '名は必須です').max(50, '名は50文字以内です'),
   lastName: z.string().min(1, '姓は必須です').max(50, '姓は50文字以内です'),
-  firstNameKana: z.string().max(100, 'フリガナ（名）は100文字以内です').optional(),
-  lastNameKana: z.string().max(100, 'フリガナ（姓）は100文字以内です').optional(),
+  firstNameKana: z.string().max(100, 'フリガナ（名）は100文字以内です').nullish().transform(val => val || null),
+  lastNameKana: z.string().max(100, 'フリガナ（姓）は100文字以内です').nullish().transform(val => val || null),
   email: z.string().email('有効なメールアドレスを入力してください').max(255),
-  phone: z.string().max(20, '電話番号は20文字以内です').optional(),
+  phone: z.string().max(20, '電話番号は20文字以内です').nullish().transform(val => val || null),
   departmentId: z.string().uuid('有効な部署IDを選択してください'),
   positionId: z.string().uuid('有効な役職IDを選択してください'),
   hireDate: z.string().refine((date) => !isNaN(Date.parse(date)), '有効な入社日を入力してください'),
   employmentType: z.nativeEnum(EmploymentType, '有効な雇用形態を選択してください'),
-  birthDate: z.string().refine((date) => !isNaN(Date.parse(date)), '有効な生年月日を入力してください').optional(),
-  address: z.string().optional(),
-  emergencyContact: z.string().optional(),
-  education: z.string().optional(),
-  workHistory: z.string().optional(),
-  skills: z.string().optional(),
-  notes: z.string().optional(),
+  birthDate: z.string().refine((date) => {
+    if (!date || date.trim() === '') return true; // 空文字列は許可
+    return !isNaN(Date.parse(date));
+  }, '有効な生年月日を入力してください').nullish().transform(val => val || null),
+  address: z.string().nullish().transform(val => val || null),
+  emergencyContact: z.string().nullish().transform(val => val || null),
+  education: z.string().nullish().transform(val => val || null),
+  workHistory: z.string().nullish().transform(val => val || null),
+  skills: z.string().nullish().transform(val => val || null),
+  photoUrl: z.string().max(500, '写真URLは500文字以内です').refine((val) => {
+    if (!val || val.trim() === '') return true; // 空文字列やnullは許可
+    try {
+      new URL(val);
+      return true;
+    } catch {
+      return false;
+    }
+  }, '有効なURLを入力してください').nullish().transform(val => val || null),
+  notes: z.string().nullish().transform(val => val || null),
 });
 
 const updateEmployeeSchema = createEmployeeSchema.partial();
@@ -896,6 +908,134 @@ router.delete('/:id', async (req, res) => {
       error: {
         code: 'SERVER_001',
         message: 'サーバーエラーが発生しました',
+      },
+    });
+  }
+});
+
+// GET /employees/export/csv - 社員データCSVエクスポート
+router.get('/export/csv', async (req, res) => {
+  try {
+    const query = querySchema.parse(req.query);
+    
+    // 検索条件構築
+    const where: any = {
+      deletedAt: null, // 論理削除されていないもの
+    };
+    
+    if (query.search) {
+      where.OR = [
+        { firstName: { contains: query.search, mode: 'insensitive' } },
+        { lastName: { contains: query.search, mode: 'insensitive' } },
+        { email: { contains: query.search, mode: 'insensitive' } },
+        { employeeId: { contains: query.search, mode: 'insensitive' } },
+      ];
+    }
+    
+    if (query.departmentId) {
+      where.departmentId = query.departmentId;
+    }
+    
+    if (query.positionId) {
+      where.positionId = query.positionId;
+    }
+    
+    if (query.employmentType) {
+      where.employmentType = query.employmentType;
+    }
+    
+    // ソート条件
+    const orderBy: any = {};
+    if (query.sortBy) {
+      orderBy[query.sortBy] = query.sortOrder || 'asc';
+    } else {
+      orderBy.employeeId = 'asc'; // デフォルトソート
+    }
+    
+    // データ取得（全件取得）
+    const employees = await prisma.employee.findMany({
+      where,
+      include: {
+        department: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        position: {
+          select: {
+            id: true,
+            name: true,
+            level: true,
+          },
+        },
+      },
+      orderBy,
+    });
+    
+    // 雇用形態のマッピング（日本語用）
+    const employmentTypeMap = {
+      'REGULAR': '正社員',
+      'CONTRACT': '契約社員', 
+      'TEMPORARY': '派遣',
+      'PART_TIME': 'アルバイト'
+    };
+    
+    // CSVデータ作成
+    const csvData = employees.map(employee => ({
+      '社員ID': employee.employeeId,
+      '姓': employee.lastName,
+      '名': employee.firstName,
+      'フリガナ姓': employee.lastNameKana || '',
+      'フリガナ名': employee.firstNameKana || '',
+      '部署': employee.department.name,
+      '役職': employee.position.name,
+      '雇用形態': employmentTypeMap[employee.employmentType as keyof typeof employmentTypeMap],
+      '入社日': employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
+      'メールアドレス': employee.email,
+      '電話番号': employee.phone || '',
+      '生年月日': employee.birthDate ? new Date(employee.birthDate).toISOString().split('T')[0] : '',
+      '住所': employee.address || '',
+      '緊急連絡先': employee.emergencyContact || '',
+      '学歴': employee.education || '',
+      '職歴': employee.workHistory || '',
+      'スキル': employee.skills || '',
+      '写真URL': employee.photoUrl || '',
+      '備考': employee.notes || ''
+    }));
+    
+    // CSV文字列に変換
+    const csvString = stringify(csvData, {
+      header: true,
+      columns: [
+        '社員ID', '姓', '名', 'フリガナ姓', 'フリガナ名', '部署', '役職', '雇用形態', 
+        '入社日', 'メールアドレス', '電話番号', '生年月日', '住所', '緊急連絡先',
+        '学歴', '職歴', 'スキル', '写真URL', '備考'
+      ],
+      quoted_string: true,
+      quoted_empty: false
+    });
+    
+    // ファイル名作成（日付付き）
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `employees_${timestamp}.csv`;
+    
+    // レスポンスヘッダー設定
+    res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Cache-Control', 'no-cache');
+    
+    // BOM付きで送信（Excel対応）
+    const bom = '\uFEFF';
+    res.send(bom + csvString);
+    
+  } catch (error) {
+    console.error('CSV export error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_001',
+        message: 'CSVエクスポートに失敗しました',
       },
     });
   }

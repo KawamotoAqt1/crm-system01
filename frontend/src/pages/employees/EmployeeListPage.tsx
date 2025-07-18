@@ -27,12 +27,22 @@ const EmployeeListPage: React.FC = () => {
     employeeId: '',
     firstName: '',
     lastName: '',
+    firstNameKana: '',
+    lastNameKana: '',
     email: '',
     phone: '',
     departmentId: '',
     positionId: '',
     employmentType: 'REGULAR',
-    hireDate: ''
+    hireDate: '',
+    birthDate: '',
+    address: '',
+    emergencyContact: '',
+    education: '',
+    workHistory: '',
+    skills: '',
+    photoUrl: '',
+    notes: ''
   });
   const [formErrors, setFormErrors] = useState<Partial<NewEmployeeForm>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -337,13 +347,30 @@ const EmployeeListPage: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      // フォームデータの処理：空文字列をnullに変換
+      const cleanFormData = { ...formData };
+      
+      // 空の文字列をnullに変換（オプショナルフィールド）
+      Object.keys(cleanFormData).forEach(key => {
+        if (typeof cleanFormData[key as keyof NewEmployeeForm] === 'string' && 
+            cleanFormData[key as keyof NewEmployeeForm].trim() === '') {
+          if (key !== 'firstName' && key !== 'lastName' && key !== 'email' && 
+              key !== 'departmentId' && key !== 'positionId' && key !== 'hireDate') {
+            // 必須フィールド以外は空文字列をnullに変換
+            (cleanFormData as any)[key] = null;
+          }
+        }
+      });
+      
       if (modalMode === 'create') {
         // 新規登録処理
-        const requestData = { ...formData };
+        const requestData = { ...cleanFormData };
         // 空のemployeeIdは除外
-        if (!requestData.employeeId.trim()) {
+        if (!requestData.employeeId || !requestData.employeeId.trim()) {
           delete (requestData as any).employeeId;
         }
+        
+        console.log('送信データ (新規登録):', requestData);
         const newEmployeeResponse = await apiService.createEmployee(requestData);
         const newEmployee = (newEmployeeResponse as any)?.data || newEmployeeResponse;
         setEmployees(prev => [...prev, newEmployee]);
@@ -351,7 +378,8 @@ const EmployeeListPage: React.FC = () => {
         
       } else {
         // 編集処理
-        const updatedEmployeeResponse = await apiService.updateEmployee(editingEmployee!.id, formData);
+        console.log('送信データ (編集):', cleanFormData);
+        const updatedEmployeeResponse = await apiService.updateEmployee(editingEmployee!.id, cleanFormData);
         const updatedEmployee = (updatedEmployeeResponse as any)?.data || updatedEmployeeResponse;
         setEmployees(prev => prev.map(emp => 
           emp.id === editingEmployee!.id ? updatedEmployee : emp
@@ -363,8 +391,11 @@ const EmployeeListPage: React.FC = () => {
       
     } catch (error: any) {
       console.error('処理エラー:', error);
-      const errorMessage = error.response?.data?.message || 
-        (modalMode === 'create' ? '社員登録に失敗しました' : '社員情報の更新に失敗しました');
+      console.error('エラー詳細:', error.message);
+      
+      // エラーメッセージを詳細に表示
+      let errorMessage = error.message || (modalMode === 'create' ? '社員登録に失敗しました' : '社員情報の更新に失敗しました');
+      
       alert(errorMessage);
     } finally {
       setIsSubmitting(false);
@@ -378,12 +409,22 @@ const EmployeeListPage: React.FC = () => {
       employeeId: '',
       firstName: '',
       lastName: '',
+      firstNameKana: '',
+      lastNameKana: '',
       email: '',
       phone: '',
       departmentId: '',
       positionId: '',
       employmentType: 'REGULAR',
-      hireDate: ''
+      hireDate: '',
+      birthDate: '',
+      address: '',
+      emergencyContact: '',
+      education: '',
+      workHistory: '',
+      skills: '',
+      photoUrl: '',
+      notes: ''
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -396,12 +437,22 @@ const EmployeeListPage: React.FC = () => {
       employeeId: employee.employeeId,
       firstName: employee.firstName,
       lastName: employee.lastName,
+      firstNameKana: employee.firstNameKana || '',
+      lastNameKana: employee.lastNameKana || '',
       email: employee.email,
       phone: employee.phone || '',
       departmentId: employee.department.id,
       positionId: employee.position.id,
       employmentType: employee.employmentType,
-      hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
+      hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : '',
+      birthDate: employee.birthDate ? new Date(employee.birthDate).toISOString().split('T')[0] : '',
+      address: employee.address || '',
+      emergencyContact: employee.emergencyContact || '',
+      education: employee.education || '',
+      workHistory: employee.workHistory || '',
+      skills: employee.skills || '',
+      photoUrl: employee.photoUrl || '',
+      notes: employee.notes || ''
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -455,12 +506,22 @@ const EmployeeListPage: React.FC = () => {
       employeeId: '',
       firstName: '',
       lastName: '',
+      firstNameKana: '',
+      lastNameKana: '',
       email: '',
       phone: '',
       departmentId: '',
       positionId: '',
       employmentType: 'REGULAR',
-      hireDate: ''
+      hireDate: '',
+      birthDate: '',
+      address: '',
+      emergencyContact: '',
+      education: '',
+      workHistory: '',
+      skills: '',
+      photoUrl: '',
+      notes: ''
     });
     setFormErrors({});
   };
@@ -1105,6 +1166,300 @@ const EmployeeListPage: React.FC = () => {
                     <span style={{ color: '#ef4444', fontSize: '12px' }}>{formErrors.hireDate}</span>
                   )}
                 </div>
+
+                {/* 姓（カナ） */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>姓（カナ）</label>
+                  <input
+                    type="text"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.lastNameKana}
+                    onChange={e => handleInputChange('lastNameKana', e.target.value)}
+                    placeholder="タナカ"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 名（カナ） */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>名（カナ）</label>
+                  <input
+                    type="text"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.firstNameKana}
+                    onChange={e => handleInputChange('firstNameKana', e.target.value)}
+                    placeholder="タロウ"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 生年月日 */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>生年月日</label>
+                  <input
+                    type="date"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.birthDate}
+                    onChange={e => handleInputChange('birthDate', e.target.value)}
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 写真URL */}
+                <div>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>写真URL</label>
+                  <input
+                    type="url"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.photoUrl}
+                    onChange={e => handleInputChange('photoUrl', e.target.value)}
+                    placeholder="https://example.com/photo.jpg"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 住所 */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>住所</label>
+                  <input
+                    type="text"
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box'
+                    }}
+                    value={formData.address}
+                    onChange={e => handleInputChange('address', e.target.value)}
+                    placeholder="東京都新宿区..."
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 緊急連絡先 */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>緊急連絡先</label>
+                  <textarea
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      minHeight: '60px',
+                      resize: 'vertical'
+                    }}
+                    value={formData.emergencyContact}
+                    onChange={e => handleInputChange('emergencyContact', e.target.value)}
+                    placeholder="名前: 田中花子（配偶者）&#10;電話: 090-1234-5678"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 学歴 */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>学歴</label>
+                  <textarea
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      minHeight: '80px',
+                      resize: 'vertical'
+                    }}
+                    value={formData.education}
+                    onChange={e => handleInputChange('education', e.target.value)}
+                    placeholder="2018年3月 ○○大学 経済学部 卒業"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 職歴 */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>職歴</label>
+                  <textarea
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      minHeight: '80px',
+                      resize: 'vertical'
+                    }}
+                    value={formData.workHistory}
+                    onChange={e => handleInputChange('workHistory', e.target.value)}
+                    placeholder="2018年4月 ○○会社 営業部 入社&#10;2020年4月 △△会社 営業部 転職"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* スキル */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>スキル・資格</label>
+                  <textarea
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      minHeight: '80px',
+                      resize: 'vertical'
+                    }}
+                    value={formData.skills}
+                    onChange={e => handleInputChange('skills', e.target.value)}
+                    placeholder="・英語検定2級&#10;・MOS Excel Expert&#10;・営業経験5年"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
+
+                {/* 備考 */}
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <label style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#374151',
+                    marginBottom: '4px'
+                  }}>備考</label>
+                  <textarea
+                    style={{
+                      width: '100%',
+                      padding: '8px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      outline: 'none',
+                      transition: 'border-color 0.2s',
+                      boxSizing: 'border-box',
+                      minHeight: '60px',
+                      resize: 'vertical'
+                    }}
+                    value={formData.notes}
+                    onChange={e => handleInputChange('notes', e.target.value)}
+                    placeholder="その他特記事項"
+                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
+                  />
+                </div>
               </div>
 
               <div style={{
@@ -1498,6 +1853,46 @@ const EmployeeListPage: React.FC = () => {
                         textTransform: 'uppercase',
                         letterSpacing: '0.05em',
                         marginBottom: '4px'
+                      }}>フリガナ</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0'
+                      }}>
+                        {detailEmployee.lastNameKana && detailEmployee.firstNameKana 
+                          ? `${detailEmployee.lastNameKana} ${detailEmployee.firstNameKana}` 
+                          : '未登録'}
+                      </p>
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
+                      }}>生年月日</label>
+                      <p style={{
+                        fontSize: '14px',
+                        color: '#111827',
+                        margin: 0,
+                        padding: '8px 0'
+                      }}>{detailEmployee.birthDate ? new Date(detailEmployee.birthDate).toLocaleDateString('ja-JP') : '未登録'}</p>
+                    </div>
+
+                    <div>
+                      <label style={{
+                        display: 'block',
+                        fontSize: '12px',
+                        fontWeight: '500',
+                        color: '#6b7280',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em',
+                        marginBottom: '4px'
                       }}>雇用形態</label>
                       <div style={{ padding: '8px 0' }}>
                         <EmploymentTypeBadge type={detailEmployee.employmentType} />
@@ -1574,6 +1969,186 @@ const EmployeeListPage: React.FC = () => {
                   </div>
                 </div>
               </div>
+
+              {/* 追加情報セクション */}
+              {(detailEmployee.address || detailEmployee.emergencyContact || detailEmployee.education || detailEmployee.workHistory || detailEmployee.skills || detailEmployee.notes) && (
+                <div style={{ marginTop: '24px' }}>
+                  <h4 style={{
+                    fontSize: '16px',
+                    fontWeight: '600',
+                    color: '#111827',
+                    margin: '0 0 16px 0',
+                    paddingBottom: '8px',
+                    borderBottom: '2px solid #e5e7eb'
+                  }}>追加情報</h4>
+                  
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr',
+                    gap: '16px'
+                  }}>
+                    {detailEmployee.address && (
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
+                        }}>住所</label>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#111827',
+                          margin: 0,
+                          padding: '8px 0',
+                          lineHeight: 1.6
+                        }}>{detailEmployee.address}</p>
+                      </div>
+                    )}
+
+                    {detailEmployee.emergencyContact && (
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
+                        }}>緊急連絡先</label>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#111827',
+                          margin: 0,
+                          padding: '8px 0',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-line'
+                        }}>{detailEmployee.emergencyContact}</p>
+                      </div>
+                    )}
+
+                    {detailEmployee.education && (
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
+                        }}>学歴</label>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#111827',
+                          margin: 0,
+                          padding: '8px 0',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-line'
+                        }}>{detailEmployee.education}</p>
+                      </div>
+                    )}
+
+                    {detailEmployee.workHistory && (
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
+                        }}>職歴</label>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#111827',
+                          margin: 0,
+                          padding: '8px 0',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-line'
+                        }}>{detailEmployee.workHistory}</p>
+                      </div>
+                    )}
+
+                    {detailEmployee.skills && (
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
+                        }}>スキル・資格</label>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#111827',
+                          margin: 0,
+                          padding: '8px 0',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-line'
+                        }}>{detailEmployee.skills}</p>
+                      </div>
+                    )}
+
+                    {detailEmployee.notes && (
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
+                        }}>備考</label>
+                        <p style={{
+                          fontSize: '14px',
+                          color: '#111827',
+                          margin: 0,
+                          padding: '8px 0',
+                          lineHeight: 1.6,
+                          whiteSpace: 'pre-line'
+                        }}>{detailEmployee.notes}</p>
+                      </div>
+                    )}
+
+                    {detailEmployee.photoUrl && (
+                      <div>
+                        <label style={{
+                          display: 'block',
+                          fontSize: '12px',
+                          fontWeight: '500',
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.05em',
+                          marginBottom: '4px'
+                        }}>写真</label>
+                        <div style={{ padding: '8px 0' }}>
+                          <img 
+                            src={detailEmployee.photoUrl} 
+                            alt={`${detailEmployee.lastName} ${detailEmployee.firstName}`}
+                            style={{
+                              maxWidth: '200px',
+                              maxHeight: '200px',
+                              borderRadius: '8px',
+                              border: '1px solid #e5e7eb'
+                            }}
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* システム情報 */}
               <div style={{ marginTop: '24px' }}>

@@ -69,6 +69,19 @@ private async request<T>(
       }
       
       const errorData = await response.json().catch(() => null);
+      console.error('API Error Details:', {
+        status: response.status,
+        statusText: response.statusText,
+        url,
+        errorData
+      });
+      
+      // バリデーションエラーの詳細を表示
+      if (errorData?.error?.details) {
+        const validationErrors = errorData.error.details.map((detail: any) => detail.message).join(', ');
+        throw new Error(`バリデーションエラー: ${validationErrors}`);
+      }
+      
       throw new Error(errorData?.error?.message || `HTTP error! status: ${response.status}`);
     }
 

@@ -5,6 +5,8 @@ export interface Employee {
   employeeId: string;        // バックエンドに合わせて camelCase
   firstName: string;         // バックエンドに合わせて camelCase
   lastName: string;          // バックエンドに合わせて camelCase
+  firstNameKana?: string;    // 名前（カナ）
+  lastNameKana?: string;     // 姓（カナ）
   email: string;
   phone?: string;
   department: {
@@ -17,6 +19,14 @@ export interface Employee {
   };
   employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME'; // バックエンドに統一
   hireDate: string;          // バックエンドに合わせて camelCase
+  birthDate?: string;        // 生年月日
+  address?: string;          // 住所
+  emergencyContact?: string; // 緊急連絡先
+  education?: string;        // 学歴
+  workHistory?: string;      // 職歴
+  skills?: string;           // スキル
+  photoUrl?: string;         // 写真URL
+  notes?: string;            // 備考
   createdAt: string;         // バックエンドに合わせて camelCase
   updatedAt: string;         // バックエンドに合わせて camelCase
 }
@@ -25,24 +35,44 @@ export interface CreateEmployeeData {
   employeeId?: string; // 新規登録時は自動生成されるためオプショナル
   firstName: string;
   lastName: string;
+  firstNameKana?: string;
+  lastNameKana?: string;
   email: string;
   phone?: string;
   departmentId: string;
   positionId: string;
   employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
   hireDate: string;
+  birthDate?: string;
+  address?: string;
+  emergencyContact?: string;
+  education?: string;
+  workHistory?: string;
+  skills?: string;
+  photoUrl?: string;
+  notes?: string;
 }
 
 export interface NewEmployeeForm {
   employeeId: string; // フォーム上では文字列として扱う（空文字可）
   firstName: string;
   lastName: string;
+  firstNameKana: string;
+  lastNameKana: string;
   email: string;
   phone: string;
   departmentId: string;
   positionId: string;
   employmentType: 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';
   hireDate: string;
+  birthDate: string;
+  address: string;
+  emergencyContact: string;
+  education: string;
+  workHistory: string;
+  skills: string;
+  photoUrl: string;
+  notes: string;
 }
 
 export type EmploymentType = 'REGULAR' | 'CONTRACT' | 'TEMPORARY' | 'PART_TIME';

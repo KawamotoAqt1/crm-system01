@@ -9,6 +9,12 @@ interface PositionFormData {
   description: string;
 }
 
+interface PositionFormErrors {
+  name?: string;
+  level?: string;
+  description?: string;
+}
+
 const PositionListPage: React.FC = () => {
   const [positions, setPositions] = useState<Position[]>([]);
   const [filteredPositions, setFilteredPositions] = useState<Position[]>([]);
@@ -29,7 +35,7 @@ const PositionListPage: React.FC = () => {
     level: 1,
     description: ''
   });
-  const [formErrors, setFormErrors] = useState<Partial<PositionFormData>>({});
+  const [formErrors, setFormErrors] = useState<PositionFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   // 削除確認ダイアログ関連のstate
@@ -247,7 +253,7 @@ const PositionListPage: React.FC = () => {
 
   // フォーム関連の関数
   const validateForm = (): boolean => {
-    const errors: Partial<PositionFormData> = {};
+    const errors: PositionFormErrors = {};
     
     if (!formData.name.trim()) {
       errors.name = '役職名を入力してください';
@@ -271,7 +277,7 @@ const PositionListPage: React.FC = () => {
     setFormData((prev: PositionFormData) => ({ ...prev, [field]: value }));
     // エラーをクリア
     if (formErrors[field]) {
-      setFormErrors((prev: Partial<PositionFormData>) => ({ ...prev, [field]: undefined }));
+      setFormErrors((prev: PositionFormErrors) => ({ ...prev, [field]: undefined }));
     }
   };
 

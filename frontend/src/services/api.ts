@@ -258,6 +258,74 @@ async exportEmployeesCSV(params?: EmployeeSearchParams): Promise<void> {
   }
 }
 
+// 写真アップロード
+async uploadPhoto(file: File): Promise<{ success: boolean; data: { photoUrl: string; filename: string; originalName: string; size: number; mimeType: string } }> {
+  try {
+    const formData = new FormData();
+    formData.append('photo', file);
+
+    const url = `${this.baseURL}/api/v1/employees/upload-photo`;
+    
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers.Authorization = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'POST',
+      headers,
+      body: formData,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        this.clearAccessToken();
+        throw new Error('認証が必要です');
+      }
+      
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error?.message || '写真アップロードに失敗しました');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('写真アップロードエラー:', error);
+    throw error;
+  }
+}
+
+// 写真ファイル削除
+async deletePhoto(filename: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const url = `${this.baseURL}/api/v1/employees/photo/${filename}`;
+    
+    const headers: Record<string, string> = {};
+    if (this.accessToken) {
+      headers.Authorization = `Bearer ${this.accessToken}`;
+    }
+
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        this.clearAccessToken();
+        throw new Error('認証が必要です');
+      }
+      
+      const errorData = await response.json().catch(() => null);
+      throw new Error(errorData?.error?.message || '写真削除に失敗しました');
+    }
+
+    return await response.json();
+  } catch (error) {
+    console.error('写真削除エラー:', error);
+    throw error;
+  }
+}
+
 // 部署API
 async getDepartments(): Promise<ApiResponse<Department[]>> {
   return this.request<ApiResponse<Department[]>>('/api/v1/departments');

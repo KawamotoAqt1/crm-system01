@@ -17,6 +17,33 @@ import {
 const router = express.Router();
 const prisma = new PrismaClient();
 
+// ========================================
+// ファイル管理ヘルパー関数
+// ========================================
+
+// 写真ファイルを削除する関数
+const deletePhotoFile = (photoUrl: string | null): boolean => {
+  if (!photoUrl || !photoUrl.startsWith('/uploads/photos/')) {
+    return false; // 相対パスではない場合は削除しない
+  }
+
+  try {
+    const filePath = path.join(__dirname, '../../', photoUrl);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+      console.log(`🗑️ 写真ファイル削除成功: ${photoUrl}`);
+      return true;
+    } else {
+      console.log(`⚠️ 写真ファイルが見つかりません: ${photoUrl}`);
+      return false;
+    }
+  } catch (error) {
+    console.error(`❌ 写真ファイル削除エラー: ${photoUrl}`, error);
+    return false;
+  }
+};
+
+// ========================================
 // 全ルートにログを追加
 router.use((req, res, next) => {
   console.log('📋 Employee Router:', req.method, req.path, req.url);
@@ -48,13 +75,18 @@ const createEmployeeSchema = z.object({
   skills: z.string().nullish().transform(val => val || null),
   photoUrl: z.string().max(500, '写真URLは500文字以内です').refine((val) => {
     if (!val || val.trim() === '') return true; // 空文字列やnullは許可
+    
+    // 相対パス（/uploads/photos/...）を許可
+    if (val.startsWith('/uploads/photos/')) return true;
+    
+    // 完全なURLの場合はURL形式をチェック
     try {
       new URL(val);
       return true;
     } catch {
       return false;
     }
-  }, '有効なURLを入力してください').nullish().transform(val => val || null),
+  }, '有効なURLまたは写真パスを入力してください').nullish().transform(val => val || null),
   notes: z.string().nullish().transform(val => val || null),
 });
 
@@ -95,6 +127,110 @@ const upload = multer({
       console.log('❌ ファイルフィルター拒否:', file.mimetype, file.originalname);
       cb(new Error('CSVファイルのみアップロード可能です'));
     }
+  }
+});
+
+// DELETE /employees/photo/:filename - 写真ファイル削除
+router.delete('/photo/:filename', async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const photoUrl = `/uploads/photos/${filename}`;
+    
+    // ファイル削除実行
+    const deleted = deletePhotoFile(photoUrl);
+    
+    if (deleted) {
+      res.json({
+        success: true,
+        message: '写真ファイルを削除しました',
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        error: {
+          code: 'FILE_002',
+          message: '写真ファイルが見つかりません',
+        },
+      });
+    }
+  } catch (error) {
+    console.error('Delete photo file error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_001',
+        message: '写真ファイルの削除に失敗しました',
+      },
+    });
+  }
+});
+
+// ========================================
+// 写真アップロード機能
+// ========================================
+
+// 写真アップロード用のMulter設定
+const photoUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, 'uploads/photos/');
+    },
+    filename: (req, file, cb) => {
+      // ユニークなファイル名を生成
+      const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+      const ext = path.extname(file.originalname);
+      cb(null, `photo-${uniqueSuffix}${ext}`);
+    }
+  }),
+  limits: {
+    fileSize: 5 * 1024 * 1024, // 5MB制限
+  },
+  fileFilter: (req, file, cb) => {
+    // 画像ファイルのみ許可
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('画像ファイルのみアップロード可能です'));
+    }
+  }
+});
+
+// POST /employees/upload-photo - 写真アップロード
+router.post('/upload-photo', photoUpload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: {
+          code: 'FILE_001',
+          message: '写真ファイルが選択されていません',
+        },
+      });
+    }
+
+    // ファイル情報をレスポンス
+    const photoUrl = `/uploads/photos/${req.file.filename}`;
+    
+    res.json({
+      success: true,
+      data: {
+        photoUrl,
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        size: req.file.size,
+        mimeType: req.file.mimetype
+      },
+      message: '写真をアップロードしました',
+    });
+  } catch (error) {
+    console.error('Photo upload error:', error);
+    res.status(500).json({
+      success: false,
+      error: {
+        code: 'SERVER_001',
+        message: '写真アップロードに失敗しました',
+      },
+    });
   }
 });
 
@@ -634,11 +770,17 @@ router.get('/:id', async (req, res) => {
 // POST /employees - 社員新規登録 (一時的に認証を外してテスト)
 router.post('/', async (req, res) => {
   try {
+    console.log('📝 社員新規登録リクエスト受信:', {
+      photoUrl: req.body.photoUrl,
+      photoUrlType: typeof req.body.photoUrl,
+      photoUrlLength: req.body.photoUrl?.length
+    });
+    
     const validatedData = createEmployeeSchema.parse(req.body);
     
         // 社員IDの自動生成（空の場合）- 20文字以内に制限
     const employeeId = validatedData.employeeId || `EMP${Date.now().toString().slice(-8)}${Math.random().toString(36).substr(2, 4)}`;
-
+    
     // 重複チェック
     const existingEmployee = await prisma.employee.findFirst({
       where: {
@@ -649,7 +791,7 @@ router.post('/', async (req, res) => {
         deletedAt: null,
       },
     });
-
+    
     if (existingEmployee) {
       return res.status(409).json({
         success: false,
@@ -747,6 +889,13 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
+    console.log('📝 社員情報更新リクエスト受信:', {
+      id,
+      photoUrl: req.body.photoUrl,
+      photoUrlType: typeof req.body.photoUrl,
+      photoUrlLength: req.body.photoUrl?.length
+    });
+    
     const validatedData = updateEmployeeSchema.parse(req.body);
     
     // 社員存在確認
@@ -768,10 +917,10 @@ router.put('/:id', async (req, res) => {
     if (validatedData.employeeId || validatedData.email) {
       const duplicateCheck = await prisma.employee.findFirst({
         where: {
-          OR: [
-            ...(validatedData.employeeId ? [{ employeeId: validatedData.employeeId }] : []),
-            ...(validatedData.email ? [{ email: validatedData.email }] : []),
-          ],
+              OR: [
+                ...(validatedData.employeeId ? [{ employeeId: validatedData.employeeId }] : []),
+                ...(validatedData.email ? [{ email: validatedData.email }] : []),
+              ],
           id: { not: id },
           deletedAt: null,
         },
@@ -791,7 +940,7 @@ router.put('/:id', async (req, res) => {
     // 部署・役職の存在確認
     if (validatedData.departmentId) {
       const department = await prisma.department.findFirst({
-        where: { id: validatedData.departmentId, deletedAt: null },
+              where: { id: validatedData.departmentId, deletedAt: null },
       });
       
       if (!department) {
@@ -821,6 +970,12 @@ router.put('/:id', async (req, res) => {
       }
     }
     
+    // 写真が更新される場合、古い写真ファイルを削除
+    if (validatedData.photoUrl && validatedData.photoUrl !== existingEmployee.photoUrl) {
+      console.log(`🔄 写真更新検出: 旧=${existingEmployee.photoUrl} 新=${validatedData.photoUrl}`);
+      deletePhotoFile(existingEmployee.photoUrl);
+    }
+
     // 社員データ更新
     const updatedEmployee = await prisma.employee.update({
       where: { id },
@@ -892,6 +1047,12 @@ router.delete('/:id', async (req, res) => {
           message: '社員が見つかりません',
         },
       });
+    }
+    
+    // 社員削除時に写真ファイルも削除
+    if (existingEmployee.photoUrl) {
+      console.log(`🗑️ 社員削除に伴う写真ファイル削除: ${existingEmployee.photoUrl}`);
+      deletePhotoFile(existingEmployee.photoUrl);
     }
     
     // 論理削除
@@ -1041,4 +1202,4 @@ router.get('/export/csv', async (req, res) => {
   }
 });
 
-export default router; 
+export default router;

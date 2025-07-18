@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
 import dotenv from 'dotenv';
+import path from 'path';
 
 // 環境変数読み込み
 dotenv.config();
@@ -35,6 +36,9 @@ app.options('*', cors());
 app.use(morgan('combined'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// 静的ファイル配信（写真用）
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // ヘルスチェック
 app.get('/', (req, res) => {

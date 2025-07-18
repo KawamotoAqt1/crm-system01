@@ -62,6 +62,11 @@ const EmployeeListPage: React.FC = () => {
   // CSVインポート関連のstate
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
+  // 写真関連のstate
+  const [selectedPhoto, setSelectedPhoto] = useState<File | null>(null);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [isPhotoUploading, setIsPhotoUploading] = useState(false);
+
   // データ取得
   useEffect(() => {
     loadInitialData();
@@ -337,6 +342,80 @@ const EmployeeListPage: React.FC = () => {
     }
   };
 
+  // 写真ファイル選択処理
+  const handlePhotoSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // ファイルサイズチェック（5MB）
+      if (file.size > 5 * 1024 * 1024) {
+        alert('ファイルサイズは5MB以下にしてください');
+        return;
+      }
+
+      // ファイル形式チェック
+      if (!file.type.startsWith('image/')) {
+        alert('画像ファイルを選択してください');
+        return;
+      }
+
+      setSelectedPhoto(file);
+
+      // プレビュー用のURLを作成
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // 写真アップロード処理
+  const uploadPhoto = async (): Promise<string | null> => {
+    if (!selectedPhoto) return null;
+
+    setIsPhotoUploading(true);
+    try {
+      const response = await apiService.uploadPhoto(selectedPhoto);
+      if (response.success) {
+        return response.data.photoUrl;
+      }
+      throw new Error('アップロードに失敗しました');
+    } catch (error: any) {
+      console.error('写真アップロードエラー:', error);
+      alert('写真のアップロードに失敗しました: ' + error.message);
+      return null;
+    } finally {
+      setIsPhotoUploading(false);
+    }
+  };
+
+  // 写真削除処理
+  const handlePhotoDelete = async () => {
+    if (!photoPreview) return;
+
+    if (!confirm('現在の写真を削除しますか？')) return;
+
+    try {
+      // 既存写真がある場合は削除
+      if (formData.photoUrl && formData.photoUrl.startsWith('/uploads/photos/')) {
+        const filename = formData.photoUrl.split('/').pop();
+        if (filename) {
+          await apiService.deletePhoto(filename);
+        }
+      }
+
+      // フォームとプレビューをクリア
+      handleInputChange('photoUrl', '');
+      setSelectedPhoto(null);
+      setPhotoPreview(null);
+      
+      alert('写真を削除しました');
+    } catch (error: any) {
+      console.error('写真削除エラー:', error);
+      alert('写真削除に失敗しました: ' + error.message);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -347,8 +426,19 @@ const EmployeeListPage: React.FC = () => {
     setIsSubmitting(true);
     
     try {
+      // 写真をアップロードしてURLを取得
+      let photoUrl = formData.photoUrl;
+      if (selectedPhoto) {
+        console.log('写真アップロード開始');
+        const uploadedPhotoUrl = await uploadPhoto();
+        if (uploadedPhotoUrl) {
+          photoUrl = uploadedPhotoUrl;
+          console.log('写真アップロード成功:', uploadedPhotoUrl);
+        }
+      }
+
       // フォームデータの処理：空文字列をnullに変換
-      const cleanFormData = { ...formData };
+      const cleanFormData = { ...formData, photoUrl };
       
       // 空の文字列をnullに変換（オプショナルフィールド）
       Object.keys(cleanFormData).forEach(key => {
@@ -427,6 +517,9 @@ const EmployeeListPage: React.FC = () => {
       notes: ''
     });
     setFormErrors({});
+    // 写真関連のstateをリセット
+    setSelectedPhoto(null);
+    setPhotoPreview(null);
     setIsModalOpen(true);
   };
 
@@ -455,6 +548,13 @@ const EmployeeListPage: React.FC = () => {
       notes: employee.notes || ''
     });
     setFormErrors({});
+    // 写真関連のstateをリセット（既存写真がある場合はプレビューに設定）
+    setSelectedPhoto(null);
+    if (employee.photoUrl) {
+      setPhotoPreview(`http://localhost:3001${employee.photoUrl}`);
+    } else {
+      setPhotoPreview(null);
+    }
     setIsModalOpen(true);
   };
 
@@ -524,6 +624,9 @@ const EmployeeListPage: React.FC = () => {
       notes: ''
     });
     setFormErrors({});
+    // 写真関連のstateをリセット
+    setSelectedPhoto(null);
+    setPhotoPreview(null);
   };
 
   // CSVエクスポート処理関数
@@ -750,7 +853,14 @@ const EmployeeListPage: React.FC = () => {
                 <tr key={emp.id}>
                   <td>
                     <div className="employee-info">
-                      <div className="avatar">{emp.lastName[0]}</div>
+                      <div className="avatar" style={{
+                        backgroundImage: emp.photoUrl ? `url(http://localhost:3001${emp.photoUrl})` : 'none',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                        color: emp.photoUrl ? 'transparent' : undefined
+                      }}>
+                        {!emp.photoUrl && emp.lastName[0]}
+                      </div>
                       <div className="employee-details">
                         <div className="employee-name">{emp.lastName} {emp.firstName}</div>
                         <div className="employee-email">{emp.email}</div>
@@ -1253,17 +1363,21 @@ const EmployeeListPage: React.FC = () => {
                   />
                 </div>
 
-                {/* 写真URL */}
-                <div>
+                {/* 写真ファイル */}
+                <div style={{ gridColumn: '1 / -1' }}>
                   <label style={{
                     display: 'block',
                     fontSize: '14px',
                     fontWeight: '500',
                     color: '#374151',
                     marginBottom: '4px'
-                  }}>写真URL</label>
+                  }}>写真</label>
+                  
+                  {/* ファイル選択 */}
                   <input
-                    type="url"
+                    type="file"
+                    accept="image/*"
+                    onChange={handlePhotoSelect}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -1272,14 +1386,85 @@ const EmployeeListPage: React.FC = () => {
                       fontSize: '14px',
                       outline: 'none',
                       transition: 'border-color 0.2s',
-                      boxSizing: 'border-box'
+                      boxSizing: 'border-box',
+                      backgroundColor: 'white'
                     }}
-                    value={formData.photoUrl}
-                    onChange={e => handleInputChange('photoUrl', e.target.value)}
-                    placeholder="https://example.com/photo.jpg"
-                    onFocus={e => e.target.style.borderColor = '#3b82f6'}
-                    onBlur={e => e.target.style.borderColor = '#d1d5db'}
                   />
+                  
+                  {/* ファイル情報とプレビュー */}
+                  {(selectedPhoto || photoPreview) && (
+                    <div style={{
+                      marginTop: '8px',
+                      padding: '8px',
+                      border: '1px solid #e5e7eb',
+                      borderRadius: '6px',
+                      backgroundColor: '#f9fafb'
+                    }}>
+                      {selectedPhoto && (
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#6b7280',
+                          margin: '0 0 8px 0'
+                        }}>
+                          選択されたファイル: {selectedPhoto.name} ({(selectedPhoto.size / 1024 / 1024).toFixed(2)}MB)
+                        </p>
+                      )}
+                      
+                      {photoPreview && (
+                        <div style={{ textAlign: 'center' }}>
+                          <img
+                            src={photoPreview}
+                            alt="プレビュー"
+                            style={{
+                              maxWidth: '150px',
+                              maxHeight: '150px',
+                              borderRadius: '6px',
+                              border: '1px solid #d1d5db',
+                              marginBottom: '8px'
+                            }}
+                          />
+                          <div>
+                            <button
+                              type="button"
+                              onClick={handlePhotoDelete}
+                              style={{
+                                padding: '4px 8px',
+                                border: '1px solid #dc2626',
+                                borderRadius: '4px',
+                                backgroundColor: 'white',
+                                color: '#dc2626',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                transition: 'background-color 0.2s'
+                              }}
+                              onMouseEnter={e => (e.target as HTMLElement).style.backgroundColor = '#fef2f2'}
+                              onMouseLeave={e => (e.target as HTMLElement).style.backgroundColor = 'white'}
+                            >
+                              🗑️ 写真を削除
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      
+                      {isPhotoUploading && (
+                        <p style={{
+                          fontSize: '12px',
+                          color: '#3b82f6',
+                          margin: '8px 0 0 0'
+                        }}>
+                          📤 アップロード中...
+                        </p>
+                      )}
+                    </div>
+                  )}
+                  
+                  <p style={{
+                    fontSize: '12px',
+                    color: '#6b7280',
+                    margin: '4px 0 0 0'
+                  }}>
+                    JPG、PNG、GIF形式で5MB以下のファイルを選択してください
+                  </p>
                 </div>
 
                 {/* 住所 */}
@@ -1589,9 +1774,12 @@ const EmployeeListPage: React.FC = () => {
                     justifyContent: 'center',
                     fontSize: '16px',
                     fontWeight: '600',
-                    color: '#6b7280'
+                    color: deletingEmployee.photoUrl ? 'transparent' : '#6b7280',
+                    backgroundImage: deletingEmployee.photoUrl ? `url(http://localhost:3001${deletingEmployee.photoUrl})` : 'none',
+                    backgroundSize: 'cover',
+                    backgroundPosition: 'center'
                   }}>
-                    {deletingEmployee.lastName[0]}
+                    {!deletingEmployee.photoUrl && deletingEmployee.lastName[0]}
                   </div>
                   <div>
                     <div style={{
@@ -1759,9 +1947,13 @@ const EmployeeListPage: React.FC = () => {
                   justifyContent: 'center',
                   fontSize: '32px',
                   fontWeight: '600',
-                  color: '#6b7280'
+                  color: detailEmployee.photoUrl ? 'transparent' : '#6b7280',
+                  backgroundImage: detailEmployee.photoUrl ? `url(http://localhost:3001${detailEmployee.photoUrl})` : 'none',
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  border: detailEmployee.photoUrl ? '2px solid #e5e7eb' : 'none'
                 }}>
-                  {detailEmployee.lastName[0]}
+                  {!detailEmployee.photoUrl && detailEmployee.lastName[0]}
                 </div>
                 <div>
                   <h3 style={{
@@ -2129,18 +2321,28 @@ const EmployeeListPage: React.FC = () => {
                           letterSpacing: '0.05em',
                           marginBottom: '4px'
                         }}>写真</label>
-                        <div style={{ padding: '8px 0' }}>
+                        <div style={{ 
+                          padding: '8px 0',
+                          textAlign: 'center'
+                        }}>
                           <img 
-                            src={detailEmployee.photoUrl} 
+                            src={`http://localhost:3001${detailEmployee.photoUrl}`}
                             alt={`${detailEmployee.lastName} ${detailEmployee.firstName}`}
                             style={{
                               maxWidth: '200px',
                               maxHeight: '200px',
                               borderRadius: '8px',
-                              border: '1px solid #e5e7eb'
+                              border: '1px solid #e5e7eb',
+                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
                             }}
                             onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = 'none';
+                              const img = e.target as HTMLImageElement;
+                              img.style.display = 'none';
+                              // エラー時に代替テキストを表示
+                              const errorMsg = document.createElement('div');
+                              errorMsg.textContent = '写真を読み込めませんでした';
+                              errorMsg.style.cssText = 'color: #9ca3af; font-size: 14px; padding: 20px; border: 1px dashed #d1d5db; border-radius: 8px; text-align: center;';
+                              img.parentNode?.appendChild(errorMsg);
                             }}
                           />
                         </div>

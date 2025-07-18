@@ -157,9 +157,35 @@ async updateEmployee(id: string, data: Partial<CreateEmployeeData>): Promise<Api
 }
 
 async deleteEmployee(id: string): Promise<void> {
-  await this.request<ApiResponse<void>>(`/api/v1/employees/${id}`, {
+  const url = `${this.baseURL}/api/v1/employees/${id}`;
+  
+  const headers: Record<string, string> = {};
+  if (this.accessToken) {
+    headers.Authorization = `Bearer ${this.accessToken}`;
+  }
+
+  const response = await fetch(url, {
     method: 'DELETE',
+    headers,
   });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      this.clearAccessToken();
+      throw new Error('認証が必要です');
+    }
+    
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || `削除に失敗しました (${response.status})`);
+  }
+
+  // 204 No Contentの場合は何もしない（成功）
+  if (response.status === 204) {
+    return;
+  }
+
+  // その他の場合はJSONレスポンスを処理
+  await response.json();
 }
 
 // 社員データCSVエクスポート
@@ -243,9 +269,35 @@ async updateDepartment(id: string, data: Partial<CreateDepartmentData>): Promise
 }
 
 async deleteDepartment(id: string): Promise<void> {
-  await this.request<ApiResponse<void>>(`/api/v1/departments/${id}`, {
+  const url = `${this.baseURL}/api/v1/departments/${id}`;
+  
+  const headers: Record<string, string> = {};
+  if (this.accessToken) {
+    headers.Authorization = `Bearer ${this.accessToken}`;
+  }
+
+  const response = await fetch(url, {
     method: 'DELETE',
+    headers,
   });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      this.clearAccessToken();
+      throw new Error('認証が必要です');
+    }
+    
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || `削除に失敗しました (${response.status})`);
+  }
+
+  // 204 No Contentの場合は何もしない（成功）
+  if (response.status === 204) {
+    return;
+  }
+
+  // その他の場合はJSONレスポンスを処理
+  await response.json();
 }
 
 async getDepartmentStats(): Promise<any> {
@@ -329,14 +381,35 @@ async updatePosition(id: string, data: UpdatePositionRequest): Promise<Position>
 
 // 役職削除
 async deletePosition(id: string): Promise<void> {
-  try {
-    await this.request<void>(`/api/v1/positions/${id}`, {
-      method: 'DELETE'
-    });
-  } catch (error) {
-    console.error('役職削除エラー:', error);
-    throw error;
+  const url = `${this.baseURL}/api/v1/positions/${id}`;
+  
+  const headers: Record<string, string> = {};
+  if (this.accessToken) {
+    headers.Authorization = `Bearer ${this.accessToken}`;
   }
+
+  const response = await fetch(url, {
+    method: 'DELETE',
+    headers,
+  });
+
+  if (!response.ok) {
+    if (response.status === 401) {
+      this.clearAccessToken();
+      throw new Error('認証が必要です');
+    }
+    
+    const errorData = await response.json().catch(() => null);
+    throw new Error(errorData?.error?.message || `削除に失敗しました (${response.status})`);
+  }
+
+  // 204 No Contentの場合は何もしない（成功）
+  if (response.status === 204) {
+    return;
+  }
+
+  // その他の場合はJSONレスポンスを処理
+  await response.json();
 }
 
 // 役職統計情報取得（将来拡張用）

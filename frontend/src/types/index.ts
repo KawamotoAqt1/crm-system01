@@ -22,7 +22,7 @@ export interface Employee {
 }
 
 export interface CreateEmployeeData {
-  employeeId: string;
+  employeeId?: string; // 新規登録時は自動生成されるためオプショナル
   firstName: string;
   lastName: string;
   email: string;
@@ -34,7 +34,7 @@ export interface CreateEmployeeData {
 }
 
 export interface NewEmployeeForm {
-  employeeId: string;
+  employeeId: string; // フォーム上では文字列として扱う（空文字可）
   firstName: string;
   lastName: string;
   email: string;

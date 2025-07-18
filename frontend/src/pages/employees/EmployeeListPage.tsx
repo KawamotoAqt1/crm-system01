@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../../components/layout/Layout';
 import { apiService } from '../../services/api';
 import { Employee, Department, Position, NewEmployeeForm, EMPLOYMENT_TYPE_CONFIG } from '../../types';
+import EmployeeImportModal from '../../components/employees/EmployeeImportModal';
 
 const EmployeeListPage: React.FC = () => {
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -47,6 +48,9 @@ const EmployeeListPage: React.FC = () => {
   
   // CSVエクスポート関連のstate
   const [isExporting, setIsExporting] = useState(false);
+  
+  // CSVインポート関連のstate
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   // データ取得
   useEffect(() => {
@@ -335,7 +339,12 @@ const EmployeeListPage: React.FC = () => {
     try {
       if (modalMode === 'create') {
         // 新規登録処理
-        const newEmployeeResponse = await apiService.createEmployee(formData);
+        const requestData = { ...formData };
+        // 空のemployeeIdは除外
+        if (!requestData.employeeId.trim()) {
+          delete (requestData as any).employeeId;
+        }
+        const newEmployeeResponse = await apiService.createEmployee(requestData);
         const newEmployee = (newEmployeeResponse as any)?.data || newEmployeeResponse;
         setEmployees(prev => [...prev, newEmployee]);
         alert('社員を正常に登録しました');
@@ -392,7 +401,7 @@ const EmployeeListPage: React.FC = () => {
       departmentId: employee.department.id,
       positionId: employee.position.id,
       employmentType: employee.employmentType,
-      hireDate: employee.hireDate
+      hireDate: employee.hireDate ? new Date(employee.hireDate).toISOString().split('T')[0] : ''
     });
     setFormErrors({});
     setIsModalOpen(true);
@@ -495,6 +504,20 @@ const EmployeeListPage: React.FC = () => {
     }
   };
 
+  // CSVインポート関連の関数
+  const handleImportModalOpen = () => {
+    setIsImportModalOpen(true);
+  };
+
+  const handleImportModalClose = () => {
+    setIsImportModalOpen(false);
+  };
+
+  const handleImportComplete = () => {
+    // インポート完了後、データを再取得
+    loadInitialData();
+  };
+
   // UIコンポーネント
   const EmploymentTypeBadge: React.FC<{ type: Employee['employmentType'] }> = ({ type }) => {
     const config = EMPLOYMENT_TYPE_CONFIG[type];
@@ -568,6 +591,19 @@ const EmployeeListPage: React.FC = () => {
           <p className="content-subtitle">社員情報の閲覧・編集・管理を行います</p>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
+          {/* CSVインポートボタン */}
+          <button 
+            className="add-btn"
+            onClick={handleImportModalOpen}
+            style={{
+              backgroundColor: '#8b5cf6',
+              cursor: 'pointer'
+            }}
+          >
+            <span>📥</span>
+            <span>CSV取込</span>
+          </button>
+          
           {/* CSVエクスポートボタン */}
           <button 
             className="add-btn"
@@ -663,7 +699,7 @@ const EmployeeListPage: React.FC = () => {
                   <td>{emp.department.name}</td>
                   <td>{emp.position.name}</td>
                   <td><EmploymentTypeBadge type={emp.employmentType} /></td>
-                  <td>{emp.hireDate}</td>
+                  <td>{emp.hireDate ? new Date(emp.hireDate).toLocaleDateString('ja-JP') : '未設定'}</td>
                   <td>
                     <div className="action-links">
                       <a 
@@ -1533,7 +1569,7 @@ const EmployeeListPage: React.FC = () => {
                         color: '#111827',
                         margin: 0,
                         padding: '8px 0'
-                      }}>{detailEmployee.hireDate}</p>
+                      }}>{detailEmployee.hireDate ? new Date(detailEmployee.hireDate).toLocaleDateString('ja-JP') : '未設定'}</p>
                     </div>
                   </div>
                 </div>
@@ -1648,6 +1684,13 @@ const EmployeeListPage: React.FC = () => {
       )}
 
       {/* ローディング用スピナーのCSSアニメーション - moved to inline styles */}
+      
+      {/* CSVインポートモーダル */}
+      <EmployeeImportModal
+        isOpen={isImportModalOpen}
+        onClose={handleImportModalClose}
+        onImportComplete={handleImportComplete}
+      />
     </Layout>
   );
 };

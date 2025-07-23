@@ -534,3 +534,8 @@ button {
 .bg-gray-900 {
   background-color: #111827 !important;
 }
+
+/* ヘッダー中央のグローバル検索ボックスを非表示 */
+.header-center {
+  display: none !important;
+}

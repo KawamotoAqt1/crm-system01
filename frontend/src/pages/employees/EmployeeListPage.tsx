@@ -2338,194 +2338,107 @@ const EmployeeListPage: React.FC = () => {
               </div>
 
               {/* 追加情報セクション */}
-              {(detailEmployee.address || detailEmployee.emergencyContact || detailEmployee.education || detailEmployee.workHistory || detailEmployee.skills || detailEmployee.notes) && (
-                <div style={{ marginTop: '24px' }}>
-                  <h4 style={{
-                    fontSize: '16px',
-                    fontWeight: '600',
-                    color: '#111827',
-                    margin: '0 0 16px 0',
-                    paddingBottom: '8px',
-                    borderBottom: '2px solid #e5e7eb'
-                  }}>追加情報</h4>
-                  
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr',
-                    gap: '16px'
-                  }}>
-                    {detailEmployee.address && (
-                      <div>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: '4px'
-                        }}>住所</label>
-                        <p style={{
-                          fontSize: '14px',
-                          color: '#111827',
-                          margin: 0,
-                          padding: '8px 0',
-                          lineHeight: 1.6
-                        }}>{detailEmployee.address}</p>
-                      </div>
-                    )}
-
-                    {detailEmployee.emergencyContact && (
-                      <div>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: '4px'
-                        }}>緊急連絡先</label>
-                        <p style={{
-                          fontSize: '14px',
-                          color: '#111827',
-                          margin: 0,
-                          padding: '8px 0',
-                          lineHeight: 1.6,
-                          whiteSpace: 'pre-line'
-                        }}>{detailEmployee.emergencyContact}</p>
-                      </div>
-                    )}
-
-                    {detailEmployee.education && (
-                      <div>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: '4px'
-                        }}>学歴</label>
-                        <p style={{
-                          fontSize: '14px',
-                          color: '#111827',
-                          margin: 0,
-                          padding: '8px 0',
-                          lineHeight: 1.6,
-                          whiteSpace: 'pre-line'
-                        }}>{detailEmployee.education}</p>
-                      </div>
-                    )}
-
-                    {detailEmployee.workHistory && (
-                      <div>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: '4px'
-                        }}>職歴</label>
-                        <p style={{
-                          fontSize: '14px',
-                          color: '#111827',
-                          margin: 0,
-                          padding: '8px 0',
-                          lineHeight: 1.6,
-                          whiteSpace: 'pre-line'
-                        }}>{detailEmployee.workHistory}</p>
-                      </div>
-                    )}
-
-                    {detailEmployee.skills && (
-                      <div>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: '4px'
-                        }}>スキル・資格</label>
-                        <p style={{
-                          fontSize: '14px',
-                          color: '#111827',
-                          margin: 0,
-                          padding: '8px 0',
-                          lineHeight: 1.6,
-                          whiteSpace: 'pre-line'
-                        }}>{detailEmployee.skills}</p>
-                      </div>
-                    )}
-
-                    {detailEmployee.notes && (
-                      <div>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: '4px'
-                        }}>備考</label>
-                        <p style={{
-                          fontSize: '14px',
-                          color: '#111827',
-                          margin: 0,
-                          padding: '8px 0',
-                          lineHeight: 1.6,
-                          whiteSpace: 'pre-line'
-                        }}>{detailEmployee.notes}</p>
-                      </div>
-                    )}
-
-                    {detailEmployee.photoUrl && (
-                      <div>
-                        <label style={{
-                          display: 'block',
-                          fontSize: '12px',
-                          fontWeight: '500',
-                          color: '#6b7280',
-                          textTransform: 'uppercase',
-                          letterSpacing: '0.05em',
-                          marginBottom: '4px'
-                        }}>写真</label>
-                        <div style={{ 
-                          padding: '8px 0',
-                          textAlign: 'center'
-                        }}>
-                          <img 
-                            src={`http://localhost:3001${detailEmployee.photoUrl}`}
-                            alt={`${detailEmployee.lastName} ${detailEmployee.firstName}`}
-                            style={{
-                              maxWidth: '200px',
-                              maxHeight: '200px',
-                              borderRadius: '8px',
-                              border: '1px solid #e5e7eb',
-                              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
-                            }}
-                            onError={(e) => {
-                              const img = e.target as HTMLImageElement;
-                              img.style.display = 'none';
-                              // エラー時に代替テキストを表示
-                              const errorMsg = document.createElement('div');
-                              errorMsg.textContent = '写真を読み込めませんでした';
-                              errorMsg.style.cssText = 'color: #9ca3af; font-size: 14px; padding: 20px; border: 1px dashed #d1d5db; border-radius: 8px; text-align: center;';
-                              img.parentNode?.appendChild(errorMsg);
-                            }}
-                          />
-                        </div>
-                      </div>
-                    )}
+              <div style={{ marginTop: '24px' }}>
+                <h4 style={{
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  color: '#111827',
+                  margin: '0 0 16px 0',
+                  paddingBottom: '8px',
+                  borderBottom: '2px solid #e5e7eb'
+                }}>追加情報</h4>
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr',
+                  gap: '16px'
+                }}>
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px'
+                    }}>住所</label>
+                    <p style={{ fontSize: '14px', color: '#111827', margin: 0, padding: '8px 0', lineHeight: 1.6 }}>
+                      {detailEmployee.address ? detailEmployee.address : '未登録'}
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px'
+                    }}>緊急連絡先</label>
+                    <p style={{ fontSize: '14px', color: '#111827', margin: 0, padding: '8px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {detailEmployee.emergencyContact ? detailEmployee.emergencyContact : '未登録'}
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px'
+                    }}>学歴</label>
+                    <p style={{ fontSize: '14px', color: '#111827', margin: 0, padding: '8px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {detailEmployee.education ? detailEmployee.education : '未登録'}
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px'
+                    }}>職歴</label>
+                    <p style={{ fontSize: '14px', color: '#111827', margin: 0, padding: '8px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {detailEmployee.workHistory ? detailEmployee.workHistory : '未登録'}
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px'
+                    }}>スキル・資格</label>
+                    <p style={{ fontSize: '14px', color: '#111827', margin: 0, padding: '8px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {detailEmployee.skills ? detailEmployee.skills : '未登録'}
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px'
+                    }}>備考</label>
+                    <p style={{ fontSize: '14px', color: '#111827', margin: 0, padding: '8px 0', lineHeight: 1.6, whiteSpace: 'pre-line' }}>
+                      {detailEmployee.notes ? detailEmployee.notes : '未登録'}
+                    </p>
+                  </div>
+                  <div>
+                    <label style={{
+                      display: 'block', fontSize: '12px', fontWeight: '500', color: '#6b7280',
+                      textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px'
+                    }}>写真</label>
+                    <div style={{ padding: '8px 0', textAlign: 'center' }}>
+                      {detailEmployee.photoUrl ? (
+                        <img 
+                          src={`http://localhost:3001${detailEmployee.photoUrl}`}
+                          alt={`${detailEmployee.lastName} ${detailEmployee.firstName}`}
+                          style={{
+                            maxWidth: '200px',
+                            maxHeight: '200px',
+                            borderRadius: '8px',
+                            border: '1px solid #e5e7eb',
+                            boxShadow: '0 2px 4px rgba(0, 0, 0, 0.1)'
+                          }}
+                          onError={(e) => {
+                            const img = e.target as HTMLImageElement;
+                            img.style.display = 'none';
+                            const errorMsg = document.createElement('div');
+                            errorMsg.textContent = '写真を読み込めませんでした';
+                            errorMsg.style.cssText = 'color: #9ca3af; font-size: 14px; padding: 20px; border: 1px dashed #d1d5db; border-radius: 8px; text-align: center;';
+                            img.parentNode?.appendChild(errorMsg);
+                          }}
+                        />
+                      ) : (
+                        <span style={{ color: '#9ca3af', fontSize: '14px' }}>写真なし</span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              )}
+              </div>
 
               {/* システム情報 */}
               <div style={{ marginTop: '24px' }}>

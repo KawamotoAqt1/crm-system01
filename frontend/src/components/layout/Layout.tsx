@@ -1,6 +1,7 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuthContext } from '../../contexts/AuthContext';
+import GlobalSearch from '../ui/GlobalSearch';
 import '../../styles/employee-management.css';
 
 interface LayoutProps {
@@ -29,6 +30,9 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
       {/* Header */}
       <div className="header">
         <div className="header-left">営業支援ツール統合システム</div>
+        <div className="header-center">
+          <GlobalSearch />
+        </div>
         <div className="header-right">
           <span className="user-info">田中 太郎</span>
           <span className="admin-badge">管理者</span>

@@ -6,3 +6,4 @@ export { EmploymentTypeBadge } from './EmploymentTypeBadge';
 export { Pagination } from './Pagination';
 export { SearchBox } from './SearchBox';
 export { LoadingSpinner } from './LoadingSpinner';
+export { default as GlobalSearch } from './GlobalSearch';

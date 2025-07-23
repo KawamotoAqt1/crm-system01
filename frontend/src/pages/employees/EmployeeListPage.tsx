@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Layout from '../../components/layout/Layout';
 import { apiService } from '../../services/api';
 import { Employee, Department, Position, Area, NewEmployeeForm, EMPLOYMENT_TYPE_CONFIG } from '../../types';
@@ -6,6 +7,7 @@ import { areaApi } from '../../services/areaApi';
 import EmployeeImportModal from '../../components/employees/EmployeeImportModal';
 
 const EmployeeListPage: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [filteredEmployees, setFilteredEmployees] = useState<Employee[]>([]);
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -13,6 +15,9 @@ const EmployeeListPage: React.FC = () => {
   const [areas, setAreas] = useState<Area[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // 強調表示用の社員ID
+  const [highlightedEmployeeId, setHighlightedEmployeeId] = useState<string | null>(null);
   
   // 検索・フィルタ関連
   const [searchTerm, setSearchTerm] = useState('');
@@ -75,6 +80,23 @@ const EmployeeListPage: React.FC = () => {
   useEffect(() => {
     loadInitialData();
   }, []);
+
+  // URLパラメータから強調表示対象を取得
+  useEffect(() => {
+    const highlightParam = searchParams.get('highlight');
+    if (highlightParam) {
+      setHighlightedEmployeeId(highlightParam);
+      // URLパラメータをクリア（履歴に残さない）
+      const newSearchParams = new URLSearchParams(searchParams);
+      newSearchParams.delete('highlight');
+      setSearchParams(newSearchParams, { replace: true });
+      
+      // 5秒後に強調表示を解除
+      setTimeout(() => {
+        setHighlightedEmployeeId(null);
+      }, 5000);
+    }
+  }, [searchParams, setSearchParams]);
 
   // エリアデータの変更を監視
   useEffect(() => {
@@ -289,11 +311,32 @@ const EmployeeListPage: React.FC = () => {
     let filtered = [...employees];
     
     if (searchTerm) {
-      filtered = filtered.filter(emp => 
-        emp.firstName.includes(searchTerm) ||
-        emp.lastName.includes(searchTerm) ||
-        emp.email.includes(searchTerm)
-      );
+      filtered = filtered.filter(emp => {
+        // グローバル検索と同様の包括的な検索
+        const fullName = `${emp.lastName} ${emp.firstName}`;
+        const kanaName = emp.lastNameKana && emp.firstNameKana ? 
+          `${emp.lastNameKana} ${emp.firstNameKana}` : '';
+        
+        // 検索対象フィールドを大幅に拡張
+        const searchFields = [
+          fullName,
+          kanaName,
+          emp.email,
+          emp.employeeId,
+          emp.phone,
+          emp.address,
+          emp.department?.name,
+          emp.position?.name,
+          emp.area?.name,
+          emp.emergencyContact,
+          emp.education,
+          emp.workHistory,
+          emp.skills,
+          emp.notes
+        ].filter(Boolean).join(' ').toLowerCase();
+        
+        return searchFields.includes(searchTerm.toLowerCase());
+      });
     }
     
     if (selectedDepartment) {
@@ -311,6 +354,17 @@ const EmployeeListPage: React.FC = () => {
     setFilteredEmployees(filtered);
     setCurrentPage(1);
   }, [employees, searchTerm, selectedDepartment, selectedPosition, selectedArea]);
+
+  // 強調表示対象の社員が現在のページに表示されるようにページを調整
+  useEffect(() => {
+    if (highlightedEmployeeId && Array.isArray(filteredEmployees)) {
+      const targetIndex = filteredEmployees.findIndex(emp => emp.id === highlightedEmployeeId);
+      if (targetIndex !== -1) {
+        const targetPage = Math.floor(targetIndex / itemsPerPage) + 1;
+        setCurrentPage(targetPage);
+      }
+    }
+  }, [highlightedEmployeeId, filteredEmployees, itemsPerPage]);
 
   const totalPages = Math.ceil(filteredEmployees.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -815,7 +869,7 @@ const EmployeeListPage: React.FC = () => {
         <input
           type="text"
           className="search-input"
-          placeholder="社員名で検索..."
+          placeholder="名前・スキル・学歴・職歴・住所・電話番号など全項目を検索..."
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
         />
@@ -870,6 +924,25 @@ const EmployeeListPage: React.FC = () => {
         </div>
       )}
       
+      {/* 強調表示通知 */}
+      {highlightedEmployeeId && (
+        <div style={{
+          backgroundColor: '#fef3c7',
+          border: '1px solid #f59e0b',
+          color: '#92400e',
+          padding: '8px 12px',
+          borderRadius: '6px',
+          marginBottom: '16px',
+          fontSize: '14px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px'
+        }}>
+          <span>🎯</span>
+          <span>グローバル検索結果から選択された社員がハイライト表示されています（5秒後に自動で解除されます）</span>
+        </div>
+      )}
+      
       <div className="table-container">
         <table className="table">
           <thead>
@@ -886,7 +959,15 @@ const EmployeeListPage: React.FC = () => {
           <tbody>
             {Array.isArray(currentEmployees) && currentEmployees.length > 0 ? (
               currentEmployees.map(emp => (
-                <tr key={emp.id}>
+                <tr 
+                  key={emp.id}
+                  style={{
+                    backgroundColor: highlightedEmployeeId === emp.id ? '#fef3c7' : undefined,
+                    border: highlightedEmployeeId === emp.id ? '2px solid #f59e0b' : undefined,
+                    transition: 'all 0.3s ease',
+                    animation: highlightedEmployeeId === emp.id ? 'highlight-pulse 2s ease-in-out' : undefined
+                  }}
+                >
                   <td>
                     <div className="employee-info">
                       <div className="avatar" style={{
@@ -2555,6 +2636,24 @@ const EmployeeListPage: React.FC = () => {
       )}
 
       {/* ローディング用スピナーのCSSアニメーション - moved to inline styles */}
+      
+      {/* 強調表示アニメーション用CSS */}
+      <style>{`
+        @keyframes highlight-pulse {
+          0% { 
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.7);
+            transform: scale(1);
+          }
+          50% { 
+            box-shadow: 0 0 0 10px rgba(245, 158, 11, 0);
+            transform: scale(1.02);
+          }
+          100% { 
+            box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+            transform: scale(1);
+          }
+        }
+      `}</style>
       
       {/* CSVインポートモーダル */}
       <EmployeeImportModal

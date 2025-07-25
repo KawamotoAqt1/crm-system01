@@ -14,6 +14,7 @@ import employeeRouter from './routes/employees';
 import departmentRouter from './routes/departments';
 import positionRouter from './routes/positions';
 import areaRouter from './routes/areas';
+import userRouter from './routes/users';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -66,7 +67,7 @@ app.use('/api/v1/employees', employeeRouter);
 app.use('/api/v1/departments', departmentRouter);
 app.use('/api/v1/positions', positionRouter);
 app.use('/api/v1/areas', areaRouter);
-
+app.use('/api/v1/users', userRouter);
 
 
 // 404ハンドラー

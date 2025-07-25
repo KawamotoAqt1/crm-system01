@@ -8,6 +8,7 @@ import PositionListPage from './pages/positions/PositionListPage';
 import AreaListPage from './pages/areas/AreaListPage';
 import Layout from './components/layout/Layout';
 import './App.css';
+import UserListPage from './pages/users/UserListPage';
 
 // ダッシュボードコンポーネント（更新版）
 const DashboardPage: React.FC = () => {
@@ -108,6 +109,10 @@ const App: React.FC = () => {
         <Route 
           path="/areas" 
           element={<PrivateRoute><AreaListPage /></PrivateRoute>} 
+        />
+        <Route 
+          path="/users" 
+          element={<PrivateRoute><UserListPage /></PrivateRoute>} 
         />
         
 

@@ -2,11 +2,14 @@ import React from 'react';
 
 interface ButtonProps {
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  onMouseEnter?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
+  onMouseLeave?: (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
   type?: 'button' | 'submit' | 'reset';
   variant?: 'primary' | 'secondary' | 'danger' | 'outline';
   size?: 'sm' | 'md' | 'lg';
   className?: string;
+  style?: React.CSSProperties;
   disabled?: boolean;
   loading?: boolean;
 }
@@ -14,18 +17,21 @@ interface ButtonProps {
 export const Button: React.FC<ButtonProps> = ({
   children,
   onClick,
+  onMouseEnter,
+  onMouseLeave,
   type = 'button',
   variant = 'primary',
   size = 'md',
   className = '',
+  style,
   disabled = false,
   loading = false
 }) => {
   const variantClasses = {
-    primary: 'bg-blue-600 text-white hover:bg-blue-700',
-    secondary: 'bg-gray-600 text-white hover:bg-gray-700',
-    danger: 'bg-red-600 text-white hover:bg-red-700',
-    outline: 'border border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+    primary: '',
+    secondary: '',
+    danger: '',
+    outline: ''
   };
 
   const sizeClasses = {
@@ -38,10 +44,14 @@ export const Button: React.FC<ButtonProps> = ({
     <button
       type={type}
       onClick={onClick}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
       disabled={disabled || loading}
+      style={style}
       className={`
-        ${sizeClasses[size]} ${variantClasses[variant]}
         rounded-md disabled:opacity-50 disabled:cursor-not-allowed transition-colors
+        ${sizeClasses[size]} 
+        ${variantClasses[variant]}
         ${className}
       `}
     >
